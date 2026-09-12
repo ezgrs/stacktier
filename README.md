@@ -24,7 +24,9 @@ da fonte dos títulos são calculados internamente; títulos longos reduzem a fo
 automaticamente para caber no rótulo. O padding interno dos ícones é controlado
 separadamente por `iconPadding`, entre 0 e 10, com padrão 0.
 `maxIconsPerRow` limita a quantidade de ícones por linha, com padrão 9 e
-limite máximo de 64.
+limite máximo de 64. `iconFontSize` define o tamanho dos nomes abaixo dos
+ícones, entre 6 e 24 pixels, com padrão 11; o wrapping dos nomes acompanha esse
+valor.
 
 O rótulo colorido de cada tier acompanha a altura do próprio bloco de ícones.
 Sua largura é compartilhada entre os tiers e os títulos reduzem a fonte quando

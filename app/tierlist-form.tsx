@@ -11,6 +11,7 @@ export function TierlistForm() {
   const [width, setWidth] = useState("1200");
   const [maxIconsPerRow, setMaxIconsPerRow] = useState("9");
   const [iconPadding, setIconPadding] = useState("0");
+  const [iconFontSize, setIconFontSize] = useState("11");
   const [labels, setLabels] = useState(true);
 
   const endpoint = useMemo(() => {
@@ -24,9 +25,10 @@ export function TierlistForm() {
     params.set("width", width || "1200");
     params.set("maxIconsPerRow", maxIconsPerRow || "9");
     params.set("iconPadding", iconPadding || "0");
+    params.set("iconFontSize", iconFontSize || "11");
     params.set("labels", labels ? "1" : "0");
     return `/tierlist?${params.toString()}`;
-  }, [iconPadding, labels, maxIconsPerRow, theme, tiers, width]);
+  }, [iconFontSize, iconPadding, labels, maxIconsPerRow, theme, tiers, width]);
 
   return (
     <section className="builder-card">
@@ -81,6 +83,17 @@ export function TierlistForm() {
             max="10"
             value={iconPadding}
             onChange={(event) => setIconPadding(event.target.value)}
+          />
+        </div>
+        <div className="field-group">
+          <label htmlFor="iconFontSize">Fonte dos nomes</label>
+          <input
+            id="iconFontSize"
+            type="number"
+            min="6"
+            max="24"
+            value={iconFontSize}
+            onChange={(event) => setIconFontSize(event.target.value)}
           />
         </div>
         <label className="checkbox-field">

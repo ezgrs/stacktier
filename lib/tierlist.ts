@@ -12,9 +12,10 @@ export const MAX_MAX_ICONS_PER_ROW = MAX_ICONS_PER_TIER;
 export const DEFAULT_ICON_PADDING = 0;
 export const MIN_ICON_PADDING = 0;
 export const MAX_ICON_PADDING = 10;
+export const DEFAULT_ICON_FONT_SIZE = 11;
+export const MIN_ICON_FONT_SIZE = 6;
+export const MAX_ICON_FONT_SIZE = 24;
 export const MAX_TITLE_LENGTH = 48;
-const ICON_LABEL_FONT_SIZE = 11;
-const ICON_LABEL_LINE_HEIGHT = 14;
 const ICON_LABEL_BOTTOM_PADDING = 2;
 const TIER_TITLE_PADDING = 16;
 const TIER_TITLE_FONT_SIZE = 20;
@@ -34,6 +35,7 @@ export type TierlistModel = {
   labels: boolean;
   maxIconsPerRow: number;
   iconPadding: number;
+  iconFontSize: number;
 };
 
 export type InputErrorCode =
@@ -50,7 +52,8 @@ export type InputErrorCode =
   | "invalid_width"
   | "invalid_labels"
   | "invalid_max_icons_per_row"
-  | "invalid_icon_padding";
+  | "invalid_icon_padding"
+  | "invalid_icon_font_size";
 
 export class TierlistInputError extends Error {
   readonly status = 400;
@@ -115,7 +118,8 @@ function parseBoundedInteger(
   code:
     | "invalid_width"
     | "invalid_max_icons_per_row"
-    | "invalid_icon_padding",
+    | "invalid_icon_padding"
+    | "invalid_icon_font_size",
   min: number,
   max: number,
 ): number {
@@ -285,6 +289,17 @@ export function parseTierlistSearchParams(
       )
     : DEFAULT_ICON_PADDING;
 
+  const iconFontSizeValue = searchParams.get("iconFontSize");
+  const iconFontSize = iconFontSizeValue
+    ? parseBoundedInteger(
+        iconFontSizeValue,
+        "iconFontSize",
+        "invalid_icon_font_size",
+        MIN_ICON_FONT_SIZE,
+        MAX_ICON_FONT_SIZE,
+      )
+    : DEFAULT_ICON_FONT_SIZE;
+
   return {
     tiers: rawTiers.map(parseTierSpec),
     theme: themeValue,
@@ -292,6 +307,7 @@ export function parseTierlistSearchParams(
     labels: labelsValue === "1",
     maxIconsPerRow,
     iconPadding,
+    iconFontSize,
   };
 }
 
@@ -439,10 +455,18 @@ function getLabelWidth(
   return Math.ceil(Math.min(desiredWidth, maximumWidth));
 }
 
-function getIconLabelLines(title: string, itemWidth: number): string[] {
+function getIconLabelLineHeight(fontSize: number): number {
+  return Math.max(1, Math.round((fontSize * 14) / 11));
+}
+
+function getIconLabelLines(
+  title: string,
+  itemWidth: number,
+  fontSize: number,
+): string[] {
   const maxCharacters = Math.max(
     1,
-    Math.floor(itemWidth / (ICON_LABEL_FONT_SIZE * 0.62)),
+    Math.floor(itemWidth / (fontSize * 0.62)),
   );
   return wrapText(title, maxCharacters);
 }
@@ -452,6 +476,7 @@ function calculateLayout(model: TierlistModel) {
   const gap = 0;
   const iconSize = 32 + TIER_TITLE_PADDING;
   const itemWidth = iconSize;
+  const iconLabelLineHeight = getIconLabelLineHeight(model.iconFontSize);
   const labelWidth = getLabelWidth(
     model.tiers.map((tier) => tier.title),
     TIER_TITLE_PADDING,
@@ -464,12 +489,14 @@ function calculateLayout(model: TierlistModel) {
     const itemHeight = model.labels
       ? iconSize +
         Math.max(
-          ...tier.icons.map(
-            (icon) => getIconLabelLines(icon.title, itemWidth).length,
-          ),
-        ) *
-          ICON_LABEL_LINE_HEIGHT +
-        ICON_LABEL_BOTTOM_PADDING
+            ...tier.icons.map(
+              (icon) =>
+                getIconLabelLines(icon.title, itemWidth, model.iconFontSize)
+                  .length,
+            ),
+          ) *
+          iconLabelLineHeight +
+          ICON_LABEL_BOTTOM_PADDING
       : iconSize;
     const maxColumns = Math.min(
       tier.icons.length,
@@ -495,8 +522,8 @@ function calculateLayout(model: TierlistModel) {
         tier.title,
         labelWidth,
         height,
-          TIER_TITLE_PADDING,
-          TIER_TITLE_FONT_SIZE,
+        TIER_TITLE_PADDING,
+        TIER_TITLE_FONT_SIZE,
       );
       const availableWidth = model.width - labelWidth - horizontalPadding * 2;
       const requiredWidth = columns * itemWidth + (columns - 1) * gap;
@@ -523,6 +550,7 @@ function calculateLayout(model: TierlistModel) {
     gap,
     itemWidth,
     iconSize,
+    iconLabelLineHeight,
     tiers,
     width: Math.max(
       labelWidth + model.maxIconsPerRow * itemWidth,
@@ -559,6 +587,7 @@ export function renderTierlist(model: TierlistModel): string {
   ];
 
   let top = 0;
+  const { iconLabelLineHeight } = layout;
   for (const {
     tier,
     height,
@@ -620,15 +649,19 @@ export function renderTierlist(model: TierlistModel): string {
       );
 
       if (model.labels) {
-        const labelLines = getIconLabelLines(icon.title, layout.itemWidth);
+        const labelLines = getIconLabelLines(
+          icon.title,
+          layout.itemWidth,
+          model.iconFontSize,
+        );
         const labelTspans = labelLines
           .map(
             (line, lineIndex) =>
-              `<tspan x="${x + layout.itemWidth / 2}" dy="${lineIndex === 0 ? 0 : ICON_LABEL_LINE_HEIGHT}">${escapeXml(line)}</tspan>`,
+              `<tspan x="${x + layout.itemWidth / 2}" dy="${lineIndex === 0 ? 0 : iconLabelLineHeight}">${escapeXml(line)}</tspan>`,
           )
           .join("");
         output.push(
-          `<text x="${x + layout.itemWidth / 2}" y="${y + layout.iconSize + ICON_LABEL_LINE_HEIGHT}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${ICON_LABEL_FONT_SIZE}" fill="${colors.muted}">${labelTspans}</text>`,
+          `<text x="${x + layout.itemWidth / 2}" y="${y + layout.iconSize + iconLabelLineHeight}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${model.iconFontSize}" fill="${colors.muted}">${labelTspans}</text>`,
         );
       }
     });
