@@ -5,6 +5,21 @@ parameters. I made it mainly for putting a simple skills snapshot in a GitHub
 README. The deployed preview is at
 <https://stacktier-production.up.railway.app/>.
 
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="https://stacktier-production.up.railway.app/tierlist?tier=00A86B%3BExpert%3Bpython%2Ctypescript%2Cpostgres%2Cjava&tier=7CB342%3BAdvanced%3Bjavascript%2Cgo%2Crust%2Ccpp&tier=FDD835%3BIntermediate%3Bc%2Ckotlin%2Cswift%2Cphp&tier=FB8C00%3BBeginner%3Bruby%2Cdart%2Cscala%2Clua&tier=E53935%3BLearning%3Bperl%2Celixir%2Chaskell%2Cclojure&theme=dark&width=1200&maxIconsPerRow=9&iconPadding=2&iconSize=72&iconFontSize=11&labels=1"
+  />
+  <source
+    media="(prefers-color-scheme: light)"
+    srcset="https://stacktier-production.up.railway.app/tierlist?tier=00A86B%3BExpert%3Bpython%2Ctypescript%2Cpostgres%2Cjava&tier=7CB342%3BAdvanced%3Bjavascript%2Cgo%2Crust%2Ccpp&tier=FDD835%3BIntermediate%3Bc%2Ckotlin%2Cswift%2Cphp&tier=FB8C00%3BBeginner%3Bruby%2Cdart%2Cscala%2Clua&tier=E53935%3BLearning%3Bperl%2Celixir%2Chaskell%2Cclojure&theme=light&width=1200&maxIconsPerRow=9&iconPadding=2&iconSize=72&iconFontSize=11&labels=1"
+  />
+  <img
+    alt="My technology proficiency"
+    src="https://stacktier-production.up.railway.app/tierlist?tier=00A86B%3BExpert%3Bpython%2Ctypescript%2Cpostgres%2Cjava&tier=7CB342%3BAdvanced%3Bjavascript%2Cgo%2Crust%2Ccpp&tier=FDD835%3BIntermediate%3Bc%2Ckotlin%2Cswift%2Cphp&tier=FB8C00%3BBeginner%3Bruby%2Cdart%2Cscala%2Clua&tier=E53935%3BLearning%3Bperl%2Celixir%2Chaskell%2Cclojure&theme=light&width=1200&maxIconsPerRow=9&iconPadding=2&iconSize=72&iconFontSize=11&labels=1"
+  />
+</picture>
+
 ## Quick start
 
 ### Requirements
@@ -19,7 +34,12 @@ npm ci
 npm run dev
 ```
 
-Open <http://localhost:3000> for the interactive preview. The SVG endpoint is
+Open <http://localhost:3000> for the interactive preview:
+
+<img width="2560" height="1600" alt="stacktier-production up railway app(Nest Hub Max)" src="https://github.com/user-attachments/assets/2426458e-9d45-45a4-8121-1e2a447f8edd" />
+
+
+The SVG endpoint is
 available at:
 
 ```text
