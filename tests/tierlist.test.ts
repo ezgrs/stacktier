@@ -123,6 +123,23 @@ describe("renderTierlist", () => {
     expect(svg.match(/font-size="24"/g)).toHaveLength(2);
   });
 
+  it("adds a halo to every dark-mode icon", () => {
+    const darkModel = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;github,python&theme=dark"),
+    );
+    const lightModel = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;python&theme=light"),
+    );
+
+    const darkSvg = renderTierlist(darkModel);
+    const lightSvg = renderTierlist(lightModel);
+
+    expect(darkSvg.match(/stroke="#ffffff"/g)).toHaveLength(2);
+    expect(darkSvg.match(/scale\(0\.9057\)/g)).toHaveLength(2);
+    expect(darkSvg).not.toContain('overflow="visible"');
+    expect(lightSvg).not.toContain('stroke="#ffffff"');
+  });
+
   it("grows icon squares with padding without adding a gap", () => {
     const model = parseTierlistSearchParams(
       params("tier=FF0000;Pro;python,typescript&padding=24"),

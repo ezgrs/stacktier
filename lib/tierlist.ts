@@ -390,11 +390,40 @@ function renderTierTitle(
 }
 
 function contrastText(hex: string): string {
-  const red = Number.parseInt(hex.slice(0, 2), 16);
-  const green = Number.parseInt(hex.slice(2, 4), 16);
-  const blue = Number.parseInt(hex.slice(4, 6), 16);
-  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
-  return luminance >= 150 ? "#0f172a" : "#ffffff";
+  return relativeLuminance(hex) > 0.5 ? "#0f172a" : "#ffffff";
+}
+
+function relativeLuminance(hex: string): number {
+  const channels = [0, 2, 4].map((offset) =>
+    Number.parseInt(hex.replace(/^#/, "").slice(offset, offset + 2), 16) / 255,
+  );
+  const linear = channels.map((channel) =>
+    channel <= 0.03928
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4,
+  );
+
+  return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+}
+
+function contrastRatio(firstHex: string, secondHex: string): number {
+  const first = relativeLuminance(firstHex);
+  const second = relativeLuminance(secondHex);
+  const lighter = Math.max(first, second);
+  const darker = Math.min(first, second);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function iconHaloColor(
+  iconHex: string,
+  backgroundHex: string,
+  force: boolean,
+): string | null {
+  if (!force && contrastRatio(iconHex, backgroundHex) >= 3) {
+    return null;
+  }
+
+  return relativeLuminance(backgroundHex) > 0.5 ? "#0f172a" : "#ffffff";
 }
 
 function calculateLayout(model: TierlistModel) {
@@ -508,9 +537,22 @@ export function renderTierlist(model: TierlistModel): string {
         row * (layout.itemHeight + layout.gap);
       const iconX = x;
       const iconY = y;
+      const haloColor = iconHaloColor(
+        icon.hex,
+        colors.surface,
+        model.theme === "dark",
+      );
+      const haloStrokeWidth = 2.5;
+      const haloScale = 24 / (24 + haloStrokeWidth);
+      const iconTransform = haloColor
+        ? ` transform="translate(12 12) scale(${haloScale.toFixed(4)}) translate(-12 -12)"`
+        : "";
+      const halo = haloColor
+        ? `<path fill="${haloColor}" stroke="${haloColor}" stroke-width="${haloStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" opacity="0.95" d="${icon.path}"/>`
+        : "";
 
       output.push(
-        `<svg x="${iconX}" y="${iconY}" width="${layout.iconSize}" height="${layout.iconSize}" viewBox="0 0 24 24" role="img" aria-label="${escapeXml(icon.title)}"><title>${escapeXml(icon.title)}</title><path fill="#${icon.hex}" d="${icon.path}"/></svg>`,
+        `<svg x="${iconX}" y="${iconY}" width="${layout.iconSize}" height="${layout.iconSize}" viewBox="0 0 24 24" role="img" aria-label="${escapeXml(icon.title)}"><title>${escapeXml(icon.title)}</title><g${iconTransform}>${halo}<path fill="#${icon.hex}" d="${icon.path}"/></g></svg>`,
       );
 
       if (model.labels) {
