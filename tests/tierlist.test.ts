@@ -23,6 +23,7 @@ describe("parseTierlistSearchParams", () => {
     expect(model.labelPadding).toBe(16);
     expect(model.labelFontSize).toBe(20);
     expect(model.maxIconsPerRow).toBe(9);
+    expect(model.iconPadding).toBe(0);
     expect(model.tiers.map((tier) => tier.title)).toEqual(["Pro", "Good"]);
     expect(model.tiers[0].icons.map((icon) => icon.slug)).toEqual([
       "python",
@@ -42,6 +43,7 @@ describe("parseTierlistSearchParams", () => {
     expect(model.labelPadding).toBe(16);
     expect(model.labelFontSize).toBe(20);
     expect(model.maxIconsPerRow).toBe(9);
+    expect(model.iconPadding).toBe(0);
   });
 
   it("accepts encoded Unicode titles", () => {
@@ -63,6 +65,11 @@ describe("parseTierlistSearchParams", () => {
       "bad max icons per row",
       "tier=FF0000;Pro;python&maxIconsPerRow=0",
       "invalid_max_icons_per_row",
+    ],
+    [
+      "bad icon padding",
+      "tier=FF0000;Pro;python&iconPadding=11",
+      "invalid_icon_padding",
     ],
     ["unknown icon", "tier=FF0000;Pro;does-not-exist", "unknown_icon"],
     ["bad width", "tier=FF0000;Pro;python&width=100", "invalid_width"],
@@ -158,6 +165,16 @@ describe("renderTierlist", () => {
 
     expect(model.maxIconsPerRow).toBe(1);
     expect(svg).toMatch(/width="128" height="128" fill="#FF0000"/);
+  });
+
+  it("scales the icon inside its viewBox padding", () => {
+    const model = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;python&iconPadding=4&theme=light"),
+    );
+    const svg = renderTierlist(model);
+
+    expect(model.iconPadding).toBe(4);
+    expect(svg).toContain('scale(0.6667)');
   });
 
   it("uses maxIconsPerRow as the final width basis", () => {

@@ -12,6 +12,7 @@ export function TierlistForm() {
   const [padding, setPadding] = useState("16");
   const [fontSize, setFontSize] = useState("20");
   const [maxIconsPerRow, setMaxIconsPerRow] = useState("9");
+  const [iconPadding, setIconPadding] = useState("0");
   const [labels, setLabels] = useState(true);
 
   const endpoint = useMemo(() => {
@@ -26,9 +27,10 @@ export function TierlistForm() {
     params.set("padding", padding || "16");
     params.set("fontSize", fontSize || "20");
     params.set("maxIconsPerRow", maxIconsPerRow || "9");
+    params.set("iconPadding", iconPadding || "0");
     params.set("labels", labels ? "1" : "0");
     return `/tierlist?${params.toString()}`;
-  }, [fontSize, labels, maxIconsPerRow, padding, theme, tiers, width]);
+  }, [fontSize, iconPadding, labels, maxIconsPerRow, padding, theme, tiers, width]);
 
   return (
     <section className="builder-card">
@@ -94,6 +96,17 @@ export function TierlistForm() {
             max="64"
             value={maxIconsPerRow}
             onChange={(event) => setMaxIconsPerRow(event.target.value)}
+          />
+        </div>
+        <div className="field-group">
+          <label htmlFor="iconPadding">Padding do viewBox</label>
+          <input
+            id="iconPadding"
+            type="number"
+            min="0"
+            max="10"
+            value={iconPadding}
+            onChange={(event) => setIconPadding(event.target.value)}
           />
         </div>
         <label className="checkbox-field">

@@ -25,7 +25,8 @@ pixels. O padrão de `padding` é 16. `fontSize` define o tamanho comum da fonte
 dos títulos, entre 10 e 32 pixels, com padrão 20. O mesmo `padding` também
 controla o tamanho dos quadrados dos ícones, sem adicionar espaço entre eles.
 `maxIconsPerRow` limita a quantidade de ícones por linha, com padrão 9 e
-limite máximo de 64.
+limite máximo de 64. `iconPadding` adiciona padding interno ao `viewBox` de
+cada ícone, entre 0 e 10, com padrão 0; o ícone é reduzido proporcionalmente.
 
 ## Checks
 

@@ -15,6 +15,9 @@ export const MIN_MAX_ICONS_PER_ROW = 1;
 export const MAX_TIERS = 20;
 export const MAX_ICONS_PER_TIER = 64;
 export const MAX_MAX_ICONS_PER_ROW = MAX_ICONS_PER_TIER;
+export const DEFAULT_ICON_PADDING = 0;
+export const MIN_ICON_PADDING = 0;
+export const MAX_ICON_PADDING = 10;
 export const MAX_TITLE_LENGTH = 48;
 
 export type Theme = "light" | "dark";
@@ -33,6 +36,7 @@ export type TierlistModel = {
   labelPadding: number;
   labelFontSize: number;
   maxIconsPerRow: number;
+  iconPadding: number;
 };
 
 export type InputErrorCode =
@@ -50,7 +54,8 @@ export type InputErrorCode =
   | "invalid_labels"
   | "invalid_padding"
   | "invalid_font_size"
-  | "invalid_max_icons_per_row";
+  | "invalid_max_icons_per_row"
+  | "invalid_icon_padding";
 
 export class TierlistInputError extends Error {
   readonly status = 400;
@@ -116,7 +121,8 @@ function parseBoundedInteger(
     | "invalid_width"
     | "invalid_padding"
     | "invalid_font_size"
-    | "invalid_max_icons_per_row",
+    | "invalid_max_icons_per_row"
+    | "invalid_icon_padding",
   min: number,
   max: number,
 ): number {
@@ -297,6 +303,17 @@ export function parseTierlistSearchParams(
       )
     : DEFAULT_MAX_ICONS_PER_ROW;
 
+  const iconPaddingValue = searchParams.get("iconPadding");
+  const iconPadding = iconPaddingValue
+    ? parseBoundedInteger(
+        iconPaddingValue,
+        "iconPadding",
+        "invalid_icon_padding",
+        MIN_ICON_PADDING,
+        MAX_ICON_PADDING,
+      )
+    : DEFAULT_ICON_PADDING;
+
   return {
     tiers: rawTiers.map(parseTierSpec),
     theme: themeValue,
@@ -305,6 +322,7 @@ export function parseTierlistSearchParams(
     labelPadding,
     labelFontSize,
     maxIconsPerRow,
+    iconPadding,
   };
 }
 
@@ -543,10 +561,13 @@ export function renderTierlist(model: TierlistModel): string {
         model.theme === "dark",
       );
       const haloStrokeWidth = 2.5;
-      const haloScale = 24 / (24 + haloStrokeWidth);
-      const iconTransform = haloColor
-        ? ` transform="translate(12 12) scale(${haloScale.toFixed(4)}) translate(-12 -12)"`
-        : "";
+      const iconScale =
+        (24 - model.iconPadding * 2) /
+        (24 + (haloColor ? haloStrokeWidth : 0));
+      const iconTransform =
+        iconScale < 1
+          ? ` transform="translate(12 12) scale(${iconScale.toFixed(4)}) translate(-12 -12)"`
+          : "";
       const halo = haloColor
         ? `<path fill="${haloColor}" stroke="${haloColor}" stroke-width="${haloStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" opacity="0.95" d="${icon.path}"/>`
         : "";
