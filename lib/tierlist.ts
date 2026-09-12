@@ -4,14 +4,17 @@ import type { SimpleIcon } from "simple-icons";
 export const DEFAULT_WIDTH = 1200;
 export const DEFAULT_LABEL_PADDING = 16;
 export const DEFAULT_LABEL_FONT_SIZE = 20;
+export const DEFAULT_MAX_ICONS_PER_ROW = 9;
 export const MIN_WIDTH = 320;
 export const MAX_WIDTH = 2400;
 export const MIN_LABEL_PADDING = 4;
 export const MAX_LABEL_PADDING = 32;
 export const MIN_LABEL_FONT_SIZE = 10;
 export const MAX_LABEL_FONT_SIZE = 32;
+export const MIN_MAX_ICONS_PER_ROW = 1;
 export const MAX_TIERS = 20;
 export const MAX_ICONS_PER_TIER = 64;
+export const MAX_MAX_ICONS_PER_ROW = MAX_ICONS_PER_TIER;
 export const MAX_TITLE_LENGTH = 48;
 
 export type Theme = "light" | "dark";
@@ -29,6 +32,7 @@ export type TierlistModel = {
   labels: boolean;
   labelPadding: number;
   labelFontSize: number;
+  maxIconsPerRow: number;
 };
 
 export type InputErrorCode =
@@ -45,7 +49,8 @@ export type InputErrorCode =
   | "invalid_width"
   | "invalid_labels"
   | "invalid_padding"
-  | "invalid_font_size";
+  | "invalid_font_size"
+  | "invalid_max_icons_per_row";
 
 export class TierlistInputError extends Error {
   readonly status = 400;
@@ -107,7 +112,11 @@ function normalizeIconSlug(slug: string): string {
 function parseBoundedInteger(
   value: string,
   field: string,
-  code: "invalid_width" | "invalid_padding" | "invalid_font_size",
+  code:
+    | "invalid_width"
+    | "invalid_padding"
+    | "invalid_font_size"
+    | "invalid_max_icons_per_row",
   min: number,
   max: number,
 ): number {
@@ -277,6 +286,17 @@ export function parseTierlistSearchParams(
       )
     : DEFAULT_LABEL_FONT_SIZE;
 
+  const maxIconsPerRowValue = searchParams.get("maxIconsPerRow");
+  const maxIconsPerRow = maxIconsPerRowValue
+    ? parseBoundedInteger(
+        maxIconsPerRowValue,
+        "maxIconsPerRow",
+        "invalid_max_icons_per_row",
+        MIN_MAX_ICONS_PER_ROW,
+        MAX_MAX_ICONS_PER_ROW,
+      )
+    : DEFAULT_MAX_ICONS_PER_ROW;
+
   return {
     tiers: rawTiers.map(parseTierSpec),
     theme: themeValue,
@@ -284,6 +304,7 @@ export function parseTierlistSearchParams(
     labels: labelsValue === "1",
     labelPadding,
     labelFontSize,
+    maxIconsPerRow,
   };
 }
 
@@ -384,10 +405,14 @@ function calculateLayout(model: TierlistModel) {
   const itemHeight = model.labels ? iconSize + 16 : iconSize;
 
   const tiers = model.tiers.map((tier) => {
-    const maxColumns = Math.max(
-      1,
-      Math.floor(
-        (model.width - horizontalPadding * 2 + gap) / (itemWidth + gap),
+    const maxColumns = Math.min(
+      tier.icons.length,
+      model.maxIconsPerRow,
+      Math.max(
+        1,
+        Math.floor(
+          (model.width - horizontalPadding * 2 + gap) / (itemWidth + gap),
+        ),
       ),
     );
 
@@ -417,6 +442,11 @@ function calculateLayout(model: TierlistModel) {
     itemHeight,
     iconSize,
     tiers,
+    width: Math.max(
+      ...tiers.map(
+        ({ height }) => height + model.maxIconsPerRow * itemWidth,
+      ),
+    ),
     height: tiers.reduce((total, item) => total + item.height, 0),
   };
 }
@@ -443,9 +473,9 @@ export function renderTierlist(model: TierlistModel): string {
   const title = model.tiers.map((tier) => tier.title).join(" · ");
   const output: string[] = [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${model.width}" height="${layout.height}" viewBox="0 0 ${model.width} ${layout.height}" role="img" aria-labelledby="tierlist-title">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}" height="${layout.height}" viewBox="0 0 ${layout.width} ${layout.height}" role="img" aria-labelledby="tierlist-title">`,
     `<title id="tierlist-title">${escapeXml(title)}</title>`,
-    `<rect width="${model.width}" height="${layout.height}" fill="${colors.background}"/>`,
+    `<rect width="${layout.width}" height="${layout.height}" fill="${colors.background}"/>`,
   ];
 
   let top = 0;
@@ -453,7 +483,7 @@ export function renderTierlist(model: TierlistModel): string {
     const labelColor = `#${tier.color}`;
     const labelText = contrastText(tier.color);
     output.push(
-      `<rect x="0" y="${top}" width="${model.width}" height="${height}" fill="${colors.surface}" stroke="${colors.border}"/>`,
+      `<rect x="0" y="${top}" width="${layout.width}" height="${height}" fill="${colors.surface}" stroke="${colors.border}"/>`,
       `<rect x="0" y="${top}" width="${labelSize}" height="${labelSize}" fill="${labelColor}"/>`,
       renderTierTitle(
         tier.title,

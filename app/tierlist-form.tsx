@@ -11,6 +11,7 @@ export function TierlistForm() {
   const [width, setWidth] = useState("1200");
   const [padding, setPadding] = useState("16");
   const [fontSize, setFontSize] = useState("20");
+  const [maxIconsPerRow, setMaxIconsPerRow] = useState("9");
   const [labels, setLabels] = useState(true);
 
   const endpoint = useMemo(() => {
@@ -24,9 +25,10 @@ export function TierlistForm() {
     params.set("width", width || "1200");
     params.set("padding", padding || "16");
     params.set("fontSize", fontSize || "20");
+    params.set("maxIconsPerRow", maxIconsPerRow || "9");
     params.set("labels", labels ? "1" : "0");
     return `/tierlist?${params.toString()}`;
-  }, [fontSize, labels, padding, theme, tiers, width]);
+  }, [fontSize, labels, maxIconsPerRow, padding, theme, tiers, width]);
 
   return (
     <section className="builder-card">
@@ -81,6 +83,17 @@ export function TierlistForm() {
             max="32"
             value={fontSize}
             onChange={(event) => setFontSize(event.target.value)}
+          />
+        </div>
+        <div className="field-group">
+          <label htmlFor="maxIconsPerRow">Ícones por linha</label>
+          <input
+            id="maxIconsPerRow"
+            type="number"
+            min="1"
+            max="64"
+            value={maxIconsPerRow}
+            onChange={(event) => setMaxIconsPerRow(event.target.value)}
           />
         </div>
         <label className="checkbox-field">

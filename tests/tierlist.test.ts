@@ -22,6 +22,7 @@ describe("parseTierlistSearchParams", () => {
     expect(model.labels).toBe(false);
     expect(model.labelPadding).toBe(16);
     expect(model.labelFontSize).toBe(20);
+    expect(model.maxIconsPerRow).toBe(9);
     expect(model.tiers.map((tier) => tier.title)).toEqual(["Pro", "Good"]);
     expect(model.tiers[0].icons.map((icon) => icon.slug)).toEqual([
       "python",
@@ -40,6 +41,7 @@ describe("parseTierlistSearchParams", () => {
     expect(model.labels).toBe(true);
     expect(model.labelPadding).toBe(16);
     expect(model.labelFontSize).toBe(20);
+    expect(model.maxIconsPerRow).toBe(9);
   });
 
   it("accepts encoded Unicode titles", () => {
@@ -57,6 +59,11 @@ describe("parseTierlistSearchParams", () => {
     ["bad labels", "tier=FF0000;Pro;python&labels=2", "invalid_labels"],
     ["bad padding", "tier=FF0000;Pro;python&padding=40", "invalid_padding"],
     ["bad font size", "tier=FF0000;Pro;python&fontSize=40", "invalid_font_size"],
+    [
+      "bad max icons per row",
+      "tier=FF0000;Pro;python&maxIconsPerRow=0",
+      "invalid_max_icons_per_row",
+    ],
     ["unknown icon", "tier=FF0000;Pro;does-not-exist", "unknown_icon"],
     ["bad width", "tier=FF0000;Pro;python&width=100", "invalid_width"],
   ])("rejects %s", (_label, query, code) => {
@@ -79,7 +86,7 @@ describe("renderTierlist", () => {
 
     expect(svg).toMatch(/^<\?xml/);
     expect(svg).toContain('xmlns="http://www.w3.org/2000/svg"');
-    expect(svg).toContain('width="500"');
+    expect(svg).toContain('width="496"');
     expect(svg).toContain("Python");
     expect(svg).toContain("PostgreSQL");
     expect(svg).toContain("<title>Python</title>");
@@ -124,6 +131,25 @@ describe("renderTierlist", () => {
 
     expect(svg).toContain('<svg x="72" y="0" width="56" height="56"');
     expect(svg).toMatch(/width="72" height="72" fill="#FF0000"/);
+  });
+
+  it("wraps according to maxIconsPerRow", () => {
+    const model = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;python,typescript&maxIconsPerRow=1"),
+    );
+    const svg = renderTierlist(model);
+
+    expect(model.maxIconsPerRow).toBe(1);
+    expect(svg).toMatch(/width="128" height="128" fill="#FF0000"/);
+  });
+
+  it("uses maxIconsPerRow as the final width basis", () => {
+    const model = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;python,typescript,postgres&width=1200&maxIconsPerRow=2"),
+    );
+    const svg = renderTierlist(model);
+
+    expect(svg).toContain('width="224"');
   });
 
   it("wraps icons and calculates a taller row when width is narrow", () => {
