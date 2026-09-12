@@ -135,6 +135,30 @@ function createIconMap(): Map<string, RenderableIcon> {
 
 const iconMap = createIconMap();
 
+export type IconOption = {
+  slug: string;
+  title: string;
+};
+
+export function getIconOptions(): IconOption[] {
+  const options = new Map<string, IconOption>();
+
+  for (const icon of iconMap.values()) {
+    options.set(icon.slug, { slug: icon.slug, title: icon.title });
+  }
+
+  for (const [alias, slug] of Object.entries(aliases)) {
+    const icon = iconMap.get(slug);
+    if (alias !== slug && icon) {
+      options.set(alias, { slug: alias, title: `${icon.title} (${alias})` });
+    }
+  }
+
+  return [...options.values()].sort((first, second) =>
+    first.title.localeCompare(second.title),
+  );
+}
+
 function normalizeIconSlug(slug: string): string {
   const normalized = slug.trim().toLowerCase();
   return aliases[normalized] ?? normalized;
