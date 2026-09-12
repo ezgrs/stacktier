@@ -19,6 +19,9 @@ export const DEFAULT_ICON_PADDING = 0;
 export const MIN_ICON_PADDING = 0;
 export const MAX_ICON_PADDING = 10;
 export const MAX_TITLE_LENGTH = 48;
+const ICON_LABEL_FONT_SIZE = 11;
+const ICON_LABEL_LINE_HEIGHT = 14;
+const ICON_LABEL_BOTTOM_PADDING = 2;
 
 export type Theme = "light" | "dark";
 
@@ -371,40 +374,31 @@ function wrapText(text: string, maxCharacters: number): string[] {
 
 function renderTierTitle(
   title: string,
-  labelSize: number,
+  labelWidth: number,
+  labelHeight: number,
   top: number,
   fill: string,
   padding: number,
   fontSize: number,
 ): string {
   const lineHeight = Math.round(fontSize * 1.15);
-  const availableWidth = Math.max(1, labelSize - padding * 2);
+  const availableWidth = Math.max(1, labelWidth - padding * 2);
   const maxCharacters = Math.max(
     1,
     Math.floor(availableWidth / (fontSize * 0.62)),
   );
-  const maxLines = Math.max(
-    1,
-    Math.floor((labelSize - padding * 2) / lineHeight),
-  );
-  let lines = wrapText(title, maxCharacters);
-
-  if (lines.length > maxLines) {
-    lines = lines.slice(0, maxLines);
-    const lastLine = lines[maxLines - 1];
-    lines[maxLines - 1] = `${lastLine.slice(0, Math.max(1, maxCharacters - 1))}…`;
-  }
+  const lines = wrapText(title, maxCharacters);
 
   const firstLineOffset = -((lines.length - 1) * lineHeight) / 2;
 
   const tspans = lines
     .map(
       (line, index) =>
-        `<tspan x="${labelSize / 2}" dy="${index === 0 ? firstLineOffset : lineHeight}">${escapeXml(line)}</tspan>`,
+        `<tspan x="${labelWidth / 2}" dy="${index === 0 ? firstLineOffset : lineHeight}">${escapeXml(line)}</tspan>`,
     )
     .join("");
 
-  return `<text x="${labelSize / 2}" y="${top + labelSize / 2}" dominant-baseline="middle" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="${fill}">${tspans}</text>`;
+  return `<text x="${labelWidth / 2}" y="${top + labelHeight / 2}" dominant-baseline="middle" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="${fill}">${tspans}</text>`;
 }
 
 function contrastText(hex: string): string {
@@ -444,14 +438,73 @@ function iconHaloColor(
   return relativeLuminance(backgroundHex) > 0.5 ? "#0f172a" : "#ffffff";
 }
 
+function getTitleFontSize(
+  title: string,
+  labelWidth: number,
+  labelHeight: number,
+  padding: number,
+  fontSize: number,
+): number {
+  const availableWidth = Math.max(1, labelWidth - padding * 2);
+  const availableHeight = Math.max(1, labelHeight - padding * 2);
+  const widthFontSize = availableWidth / (Math.max(1, title.length) * 0.62);
+  const heightFontSize = availableHeight / 1.15;
+
+  return Number(
+    Math.max(1, Math.min(fontSize, widthFontSize, heightFontSize)).toFixed(2),
+  );
+}
+
+function getLabelWidth(
+  titles: string[],
+  padding: number,
+  fontSize: number,
+  itemWidth: number,
+  imageWidth: number,
+): number {
+  const desiredWidth = Math.max(
+    itemWidth,
+    ...titles.map(
+      (title) => padding * 2 + Math.max(1, title.length) * fontSize * 0.62,
+    ),
+  );
+  const maximumWidth = Math.max(itemWidth, imageWidth - itemWidth);
+
+  return Math.ceil(Math.min(desiredWidth, maximumWidth));
+}
+
+function getIconLabelLines(title: string, itemWidth: number): string[] {
+  const maxCharacters = Math.max(
+    1,
+    Math.floor(itemWidth / (ICON_LABEL_FONT_SIZE * 0.62)),
+  );
+  return wrapText(title, maxCharacters);
+}
+
 function calculateLayout(model: TierlistModel) {
   const horizontalPadding = 0;
   const gap = 0;
   const iconSize = 32 + model.labelPadding;
   const itemWidth = iconSize;
-  const itemHeight = model.labels ? iconSize + 16 : iconSize;
+  const labelWidth = getLabelWidth(
+    model.tiers.map((tier) => tier.title),
+    model.labelPadding,
+    model.labelFontSize,
+    itemWidth,
+    model.width,
+  );
 
   const tiers = model.tiers.map((tier) => {
+    const itemHeight = model.labels
+      ? iconSize +
+        Math.max(
+          ...tier.icons.map(
+            (icon) => getIconLabelLines(icon.title, itemWidth).length,
+          ),
+        ) *
+          ICON_LABEL_LINE_HEIGHT +
+        ICON_LABEL_BOTTOM_PADDING
+      : iconSize;
     const maxColumns = Math.min(
       tier.icons.length,
       model.maxIconsPerRow,
@@ -463,19 +516,36 @@ function calculateLayout(model: TierlistModel) {
       ),
     );
 
-    // Choose the most compact valid layout. The label side is the exact
-    // height of the icon area, so the colored label and the icon row match.
+    // Each label follows the height of its own icon block. The title font is
+    // reduced when needed so it fits without changing that height.
     for (let columns = maxColumns; columns >= 1; columns -= 1) {
       const rows = Math.ceil(tier.icons.length / columns);
-      const height =
+      const iconHeight =
         horizontalPadding +
         rows * itemHeight +
         Math.max(0, rows - 1) * gap;
-      const availableWidth = model.width - height - horizontalPadding * 2;
+      const height = iconHeight;
+      const titleFontSize = getTitleFontSize(
+        tier.title,
+        labelWidth,
+        height,
+        model.labelPadding,
+        model.labelFontSize,
+      );
+      const availableWidth = model.width - labelWidth - horizontalPadding * 2;
       const requiredWidth = columns * itemWidth + (columns - 1) * gap;
 
       if (availableWidth >= requiredWidth || columns === 1) {
-        return { tier, rows, columns, height, labelSize: height };
+        return {
+          tier,
+          rows,
+          columns,
+          height,
+          labelWidth,
+          iconHeight,
+          itemHeight,
+          titleFontSize,
+        };
       }
     }
 
@@ -486,13 +556,10 @@ function calculateLayout(model: TierlistModel) {
     horizontalPadding,
     gap,
     itemWidth,
-    itemHeight,
     iconSize,
     tiers,
     width: Math.max(
-      ...tiers.map(
-        ({ height }) => height + model.maxIconsPerRow * itemWidth,
-      ),
+      labelWidth + model.maxIconsPerRow * itemWidth,
     ),
     height: tiers.reduce((total, item) => total + item.height, 0),
   };
@@ -526,33 +593,43 @@ export function renderTierlist(model: TierlistModel): string {
   ];
 
   let top = 0;
-  for (const { tier, height, labelSize, columns } of layout.tiers) {
+  for (const {
+    tier,
+    height,
+    labelWidth,
+    iconHeight,
+    columns,
+    itemHeight,
+    titleFontSize,
+  } of layout.tiers) {
     const labelColor = `#${tier.color}`;
     const labelText = contrastText(tier.color);
     output.push(
       `<rect x="0" y="${top}" width="${layout.width}" height="${height}" fill="${colors.surface}" stroke="${colors.border}"/>`,
-      `<rect x="0" y="${top}" width="${labelSize}" height="${labelSize}" fill="${labelColor}"/>`,
+      `<rect x="0" y="${top}" width="${labelWidth}" height="${height}" fill="${labelColor}"/>`,
       renderTierTitle(
         tier.title,
-        labelSize,
+        labelWidth,
+        height,
         top,
         labelText,
         model.labelPadding,
-        model.labelFontSize,
+        titleFontSize,
       ),
     );
 
+    const iconTop = top + (height - iconHeight) / 2;
     tier.icons.forEach((icon, index) => {
       const row = Math.floor(index / columns);
       const column = index % columns;
       const x =
-        labelSize +
+        labelWidth +
         layout.horizontalPadding +
         column * (layout.itemWidth + layout.gap);
       const y =
-        top +
+        iconTop +
         layout.horizontalPadding / 2 +
-        row * (layout.itemHeight + layout.gap);
+        row * (itemHeight + layout.gap);
       const iconX = x;
       const iconY = y;
       const haloColor = iconHaloColor(
@@ -577,8 +654,15 @@ export function renderTierlist(model: TierlistModel): string {
       );
 
       if (model.labels) {
+        const labelLines = getIconLabelLines(icon.title, layout.itemWidth);
+        const labelTspans = labelLines
+          .map(
+            (line, lineIndex) =>
+              `<tspan x="${x + layout.itemWidth / 2}" dy="${lineIndex === 0 ? 0 : ICON_LABEL_LINE_HEIGHT}">${escapeXml(line)}</tspan>`,
+          )
+          .join("");
         output.push(
-          `<text x="${x + layout.itemWidth / 2}" y="${y + layout.iconSize + 14}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="${colors.muted}">${escapeXml(icon.title)}</text>`,
+          `<text x="${x + layout.itemWidth / 2}" y="${y + layout.iconSize + ICON_LABEL_LINE_HEIGHT}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${ICON_LABEL_FONT_SIZE}" fill="${colors.muted}">${labelTspans}</text>`,
         );
       }
     });

@@ -93,7 +93,7 @@ describe("renderTierlist", () => {
 
     expect(svg).toMatch(/^<\?xml/);
     expect(svg).toContain('xmlns="http://www.w3.org/2000/svg"');
-    expect(svg).toContain('width="496"');
+    expect(svg).toContain('width="502"');
     expect(svg).toContain("Python");
     expect(svg).toContain("PostgreSQL");
     expect(svg).toContain("<title>Python</title>");
@@ -106,19 +106,35 @@ describe("renderTierlist", () => {
     expect(svg).not.toContain("lengthAdjust");
     expect(svg).toContain('dominant-baseline="middle"');
     expect(svg).toContain('font-size="20"');
-    expect(svg).toMatch(/width="64" height="64" fill="#FF0000"/);
-    expect(svg).toContain('<svg x="64" y="0" width="48" height="48"');
+    expect(svg).toMatch(/width="70" height="78" fill="#FF0000"/);
+    expect(svg).toContain('<svg x="70" y="0" width="48" height="48"');
+    expect(svg).toMatch(
+      /<tspan x="[^"]+" dy="0">Postgre<\/tspan><tspan x="[^"]+" dy="14">SQL<\/tspan>/,
+    );
   });
 
   it("wraps long tier titles without distorting glyphs", () => {
     const model = parseTierlistSearchParams(
-      params("tier=FF0000;Especialista%20S%C3%AAnior;python&width=500"),
+      params(
+        "tier=FF0000;Especialista%20S%C3%AAnior;python&labels=0&width=320",
+      ),
     );
     const svg = renderTierlist(model);
 
     expect(svg).toContain("<tspan");
     expect(svg).not.toContain("textLength");
     expect(svg).not.toContain("lengthAdjust");
+
+    const tierHeight = Number(
+      svg.match(/<svg xmlns="[^"]+" width="[^"]+" height="([^"]+)"/)?.[1],
+    );
+    const iconTop = Number(
+      svg.match(/<svg x="[^"]+" y="([^"]+)" width="48" height="48"/)?.[1],
+    );
+
+    expect(tierHeight).toBe(48);
+    expect(iconTop).toBe(0);
+    expect(svg).toContain('font-size="13.91"');
   });
 
   it("uses the requested font size consistently", () => {
@@ -129,6 +145,27 @@ describe("renderTierlist", () => {
 
     expect(model.labelFontSize).toBe(24);
     expect(svg.match(/font-size="24"/g)).toHaveLength(2);
+  });
+
+  it("matches each tier label to its own icon block", () => {
+    const model = parseTierlistSearchParams(
+      params(
+        "tier=FF0000;Pro;python&tier=00AAFF;Good;python,typescript&maxIconsPerRow=1",
+      ),
+    );
+    const svg = renderTierlist(model);
+    const labels = [...
+      svg.matchAll(
+        /<rect x="0" y="[^"]+" width="([^"]+)" height="([^"]+)" fill="#[A-F0-9]+"\/>/g,
+      ),
+    ];
+
+    expect(labels).toHaveLength(2);
+    expect(labels[0][1]).toBe(labels[1][1]);
+    expect(labels[0][2]).toBe("64");
+    expect(labels[1][2]).toBe("156");
+    expect(svg).toContain('<svg x="82" y="0" width="48" height="48"');
+    expect(svg).toContain('<svg x="82" y="64" width="48" height="48"');
   });
 
   it("adds a halo to every dark-mode icon", () => {
@@ -154,8 +191,8 @@ describe("renderTierlist", () => {
     );
     const svg = renderTierlist(model);
 
-    expect(svg).toContain('<svg x="72" y="0" width="56" height="56"');
-    expect(svg).toMatch(/width="72" height="72" fill="#FF0000"/);
+    expect(svg).toContain('<svg x="86" y="0" width="56" height="56"');
+    expect(svg).toMatch(/width="86" height="86" fill="#FF0000"/);
   });
 
   it("wraps according to maxIconsPerRow", () => {
@@ -165,7 +202,7 @@ describe("renderTierlist", () => {
     const svg = renderTierlist(model);
 
     expect(model.maxIconsPerRow).toBe(1);
-    expect(svg).toMatch(/width="128" height="128" fill="#FF0000"/);
+    expect(svg).toMatch(/width="70" height="156" fill="#FF0000"/);
   });
 
   it("scales the icon inside its viewBox padding", () => {
@@ -184,18 +221,18 @@ describe("renderTierlist", () => {
     );
     const svg = renderTierlist(model);
 
-    expect(svg).toContain('width="224"');
+    expect(svg).toContain('width="166"');
   });
 
   it("wraps icons and calculates a taller row when width is narrow", () => {
     const narrow = parseTierlistSearchParams(
       params(
-        "tier=FF0000;Pro;python,postgres,java,javascript,typescript,python,postgres,java,javascript,typescript&width=320",
+        "tier=FF0000;Pro;python,postgres,java,javascript,typescript,python,postgres,java,javascript,typescript,python,postgres,java,javascript,typescript,python,postgres,java,javascript,typescript&width=320",
       ),
     );
     const wide = parseTierlistSearchParams(
       params(
-        "tier=FF0000;Pro;python,postgres,java,javascript,typescript,python,postgres,java,javascript,typescript&width=1200",
+        "tier=FF0000;Pro;python,postgres,java,javascript,typescript,python,postgres,java,javascript,typescript,python,postgres,java,javascript,typescript,python,postgres,java,javascript,typescript&width=1200",
       ),
     );
 
@@ -211,7 +248,6 @@ describe("renderTierlist", () => {
     const narrowLabel = renderTierlist(narrow).match(
       /<rect x="0" y="0" width="(\d+)" height="(\d+)" fill="#FF0000"\/>/,
     );
-    expect(narrowLabel?.[1]).toBe(narrowLabel?.[2]);
-    expect(Number(narrowLabel?.[1])).toBe(narrowHeight);
+    expect(Number(narrowLabel?.[2])).toBe(narrowHeight);
   });
 });

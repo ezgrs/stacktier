@@ -28,6 +28,13 @@ controla o tamanho dos quadrados dos ícones, sem adicionar espaço entre eles.
 limite máximo de 64. `iconPadding` adiciona padding interno ao `viewBox` de
 cada ícone, entre 0 e 10, com padrão 0; o ícone é reduzido proporcionalmente.
 
+O rótulo colorido de cada tier acompanha a altura do próprio bloco de ícones.
+Sua largura é compartilhada entre os tiers e os títulos reduzem a fonte quando
+necessário para caber no espaço disponível; os ícones continuam sendo
+quadrados.
+Quando `labels=1`, os nomes dos ícones também ficam limitados à largura da
+célula e quebram em linhas para não invadir o item vizinho.
+
 ## Checks
 
 ```bash
