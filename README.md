@@ -19,14 +19,12 @@ O endpoint retorna `image/svg+xml`. Os parâmetros `tier` são repetíveis e usa
 o formato `RRGGBB;Título;slug1,slug2`. `theme` aceita `light` ou `dark`,
 `width` aceita valores entre 320 e 2400 e controla a quebra de linhas. A largura
 final do SVG reserva sempre `maxIconsPerRow` posições por linha, mesmo quando a
-última linha tem menos ícones. `labels` aceita `0` ou `1`, e
-`padding` define o padding interno comum dos títulos dos tiers, entre 4 e 32
-pixels. O padrão de `padding` é 16. `fontSize` define o tamanho comum da fonte
-dos títulos, entre 10 e 32 pixels, com padrão 20. O mesmo `padding` também
-controla o tamanho dos quadrados dos ícones, sem adicionar espaço entre eles.
+última linha tem menos ícones. `labels` aceita `0` ou `1`. O padding e o tamanho
+da fonte dos títulos são calculados internamente; títulos longos reduzem a fonte
+automaticamente para caber no rótulo. O padding interno dos ícones é controlado
+separadamente por `iconPadding`, entre 0 e 10, com padrão 0.
 `maxIconsPerRow` limita a quantidade de ícones por linha, com padrão 9 e
-limite máximo de 64. `iconPadding` adiciona padding interno ao `viewBox` de
-cada ícone, entre 0 e 10, com padrão 0; o ícone é reduzido proporcionalmente.
+limite máximo de 64.
 
 O rótulo colorido de cada tier acompanha a altura do próprio bloco de ícones.
 Sua largura é compartilhada entre os tiers e os títulos reduzem a fonte quando

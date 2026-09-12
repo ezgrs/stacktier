@@ -9,8 +9,6 @@ export function TierlistForm() {
   const [tiers, setTiers] = useState(initialTiers);
   const [theme, setTheme] = useState("light");
   const [width, setWidth] = useState("1200");
-  const [padding, setPadding] = useState("16");
-  const [fontSize, setFontSize] = useState("20");
   const [maxIconsPerRow, setMaxIconsPerRow] = useState("9");
   const [iconPadding, setIconPadding] = useState("0");
   const [labels, setLabels] = useState(true);
@@ -24,13 +22,11 @@ export function TierlistForm() {
       .forEach((tier) => params.append("tier", tier));
     params.set("theme", theme);
     params.set("width", width || "1200");
-    params.set("padding", padding || "16");
-    params.set("fontSize", fontSize || "20");
     params.set("maxIconsPerRow", maxIconsPerRow || "9");
     params.set("iconPadding", iconPadding || "0");
     params.set("labels", labels ? "1" : "0");
     return `/tierlist?${params.toString()}`;
-  }, [fontSize, iconPadding, labels, maxIconsPerRow, padding, theme, tiers, width]);
+  }, [iconPadding, labels, maxIconsPerRow, theme, tiers, width]);
 
   return (
     <section className="builder-card">
@@ -63,28 +59,6 @@ export function TierlistForm() {
             max="2400"
             value={width}
             onChange={(event) => setWidth(event.target.value)}
-          />
-        </div>
-        <div className="field-group">
-          <label htmlFor="padding">Padding do título</label>
-          <input
-            id="padding"
-            type="number"
-            min="4"
-            max="32"
-            value={padding}
-            onChange={(event) => setPadding(event.target.value)}
-          />
-        </div>
-        <div className="field-group">
-          <label htmlFor="fontSize">Fonte do título</label>
-          <input
-            id="fontSize"
-            type="number"
-            min="10"
-            max="32"
-            value={fontSize}
-            onChange={(event) => setFontSize(event.target.value)}
           />
         </div>
         <div className="field-group">

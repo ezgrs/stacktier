@@ -2,15 +2,9 @@ import * as simpleIcons from "simple-icons";
 import type { SimpleIcon } from "simple-icons";
 
 export const DEFAULT_WIDTH = 1200;
-export const DEFAULT_LABEL_PADDING = 16;
-export const DEFAULT_LABEL_FONT_SIZE = 20;
 export const DEFAULT_MAX_ICONS_PER_ROW = 9;
 export const MIN_WIDTH = 320;
 export const MAX_WIDTH = 2400;
-export const MIN_LABEL_PADDING = 4;
-export const MAX_LABEL_PADDING = 32;
-export const MIN_LABEL_FONT_SIZE = 10;
-export const MAX_LABEL_FONT_SIZE = 32;
 export const MIN_MAX_ICONS_PER_ROW = 1;
 export const MAX_TIERS = 20;
 export const MAX_ICONS_PER_TIER = 64;
@@ -22,6 +16,8 @@ export const MAX_TITLE_LENGTH = 48;
 const ICON_LABEL_FONT_SIZE = 11;
 const ICON_LABEL_LINE_HEIGHT = 14;
 const ICON_LABEL_BOTTOM_PADDING = 2;
+const TIER_TITLE_PADDING = 16;
+const TIER_TITLE_FONT_SIZE = 20;
 
 export type Theme = "light" | "dark";
 
@@ -36,8 +32,6 @@ export type TierlistModel = {
   theme: Theme;
   width: number;
   labels: boolean;
-  labelPadding: number;
-  labelFontSize: number;
   maxIconsPerRow: number;
   iconPadding: number;
 };
@@ -55,8 +49,6 @@ export type InputErrorCode =
   | "invalid_theme"
   | "invalid_width"
   | "invalid_labels"
-  | "invalid_padding"
-  | "invalid_font_size"
   | "invalid_max_icons_per_row"
   | "invalid_icon_padding";
 
@@ -122,8 +114,6 @@ function parseBoundedInteger(
   field: string,
   code:
     | "invalid_width"
-    | "invalid_padding"
-    | "invalid_font_size"
     | "invalid_max_icons_per_row"
     | "invalid_icon_padding",
   min: number,
@@ -273,28 +263,6 @@ export function parseTierlistSearchParams(
     );
   }
 
-  const paddingValue = searchParams.get("padding");
-  const labelPadding = paddingValue
-    ? parseBoundedInteger(
-        paddingValue,
-        "padding",
-        "invalid_padding",
-        MIN_LABEL_PADDING,
-        MAX_LABEL_PADDING,
-      )
-    : DEFAULT_LABEL_PADDING;
-
-  const fontSizeValue = searchParams.get("fontSize");
-  const labelFontSize = fontSizeValue
-    ? parseBoundedInteger(
-        fontSizeValue,
-        "fontSize",
-        "invalid_font_size",
-        MIN_LABEL_FONT_SIZE,
-        MAX_LABEL_FONT_SIZE,
-      )
-    : DEFAULT_LABEL_FONT_SIZE;
-
   const maxIconsPerRowValue = searchParams.get("maxIconsPerRow");
   const maxIconsPerRow = maxIconsPerRowValue
     ? parseBoundedInteger(
@@ -322,8 +290,6 @@ export function parseTierlistSearchParams(
     theme: themeValue,
     width,
     labels: labelsValue === "1",
-    labelPadding,
-    labelFontSize,
     maxIconsPerRow,
     iconPadding,
   };
@@ -484,12 +450,12 @@ function getIconLabelLines(title: string, itemWidth: number): string[] {
 function calculateLayout(model: TierlistModel) {
   const horizontalPadding = 0;
   const gap = 0;
-  const iconSize = 32 + model.labelPadding;
+  const iconSize = 32 + TIER_TITLE_PADDING;
   const itemWidth = iconSize;
   const labelWidth = getLabelWidth(
     model.tiers.map((tier) => tier.title),
-    model.labelPadding,
-    model.labelFontSize,
+    TIER_TITLE_PADDING,
+    TIER_TITLE_FONT_SIZE,
     itemWidth,
     model.width,
   );
@@ -529,8 +495,8 @@ function calculateLayout(model: TierlistModel) {
         tier.title,
         labelWidth,
         height,
-        model.labelPadding,
-        model.labelFontSize,
+          TIER_TITLE_PADDING,
+          TIER_TITLE_FONT_SIZE,
       );
       const availableWidth = model.width - labelWidth - horizontalPadding * 2;
       const requiredWidth = columns * itemWidth + (columns - 1) * gap;
@@ -613,7 +579,7 @@ export function renderTierlist(model: TierlistModel): string {
         height,
         top,
         labelText,
-        model.labelPadding,
+        TIER_TITLE_PADDING,
         titleFontSize,
       ),
     );

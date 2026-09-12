@@ -20,8 +20,6 @@ describe("parseTierlistSearchParams", () => {
     expect(model.theme).toBe("dark");
     expect(model.width).toBe(800);
     expect(model.labels).toBe(false);
-    expect(model.labelPadding).toBe(16);
-    expect(model.labelFontSize).toBe(20);
     expect(model.maxIconsPerRow).toBe(9);
     expect(model.iconPadding).toBe(0);
     expect(model.tiers.map((tier) => tier.title)).toEqual(["Pro", "Good"]);
@@ -40,8 +38,6 @@ describe("parseTierlistSearchParams", () => {
     expect(model.theme).toBe("light");
     expect(model.width).toBe(1200);
     expect(model.labels).toBe(true);
-    expect(model.labelPadding).toBe(16);
-    expect(model.labelFontSize).toBe(20);
     expect(model.maxIconsPerRow).toBe(9);
     expect(model.iconPadding).toBe(0);
   });
@@ -59,8 +55,6 @@ describe("parseTierlistSearchParams", () => {
     ["bad color", "tier=GG0000;Pro;python", "invalid_color"],
     ["bad theme", "tier=FF0000;Pro;python&theme=blue", "invalid_theme"],
     ["bad labels", "tier=FF0000;Pro;python&labels=2", "invalid_labels"],
-    ["bad padding", "tier=FF0000;Pro;python&padding=40", "invalid_padding"],
-    ["bad font size", "tier=FF0000;Pro;python&fontSize=40", "invalid_font_size"],
     [
       "bad max icons per row",
       "tier=FF0000;Pro;python&maxIconsPerRow=0",
@@ -137,14 +131,17 @@ describe("renderTierlist", () => {
     expect(svg).toContain('font-size="13.91"');
   });
 
-  it("uses the requested font size consistently", () => {
-    const model = parseTierlistSearchParams(
-      params("tier=FF0000;Pro;python&tier=00AAFF;Good;typescript&fontSize=24"),
+  it("uses automatic title sizing without URL overrides", () => {
+    const defaultSvg = renderTierlist(
+      parseTierlistSearchParams(params("tier=FF0000;Pro;python")),
     );
-    const svg = renderTierlist(model);
+    const overriddenSvg = renderTierlist(
+      parseTierlistSearchParams(
+        params("tier=FF0000;Pro;python&padding=4&fontSize=32"),
+      ),
+    );
 
-    expect(model.labelFontSize).toBe(24);
-    expect(svg.match(/font-size="24"/g)).toHaveLength(2);
+    expect(overriddenSvg).toBe(defaultSvg);
   });
 
   it("matches each tier label to its own icon block", () => {
@@ -183,16 +180,6 @@ describe("renderTierlist", () => {
     expect(darkSvg.match(/scale\(0\.9057\)/g)).toHaveLength(2);
     expect(darkSvg).not.toContain('overflow="visible"');
     expect(lightSvg).not.toContain('stroke="#ffffff"');
-  });
-
-  it("grows icon squares with padding without adding a gap", () => {
-    const model = parseTierlistSearchParams(
-      params("tier=FF0000;Pro;python,typescript&padding=24"),
-    );
-    const svg = renderTierlist(model);
-
-    expect(svg).toContain('<svg x="86" y="0" width="56" height="56"');
-    expect(svg).toMatch(/width="86" height="86" fill="#FF0000"/);
   });
 
   it("wraps according to maxIconsPerRow", () => {
