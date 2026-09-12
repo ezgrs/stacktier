@@ -10,6 +10,7 @@ export function TierlistForm() {
   const [theme, setTheme] = useState("light");
   const [width, setWidth] = useState("1200");
   const [padding, setPadding] = useState("16");
+  const [fontSize, setFontSize] = useState("20");
   const [labels, setLabels] = useState(true);
 
   const endpoint = useMemo(() => {
@@ -22,9 +23,10 @@ export function TierlistForm() {
     params.set("theme", theme);
     params.set("width", width || "1200");
     params.set("padding", padding || "16");
+    params.set("fontSize", fontSize || "20");
     params.set("labels", labels ? "1" : "0");
     return `/tierlist?${params.toString()}`;
-  }, [labels, theme, tiers, width]);
+  }, [fontSize, labels, padding, theme, tiers, width]);
 
   return (
     <section className="builder-card">
@@ -68,6 +70,17 @@ export function TierlistForm() {
             max="32"
             value={padding}
             onChange={(event) => setPadding(event.target.value)}
+          />
+        </div>
+        <div className="field-group">
+          <label htmlFor="fontSize">Fonte do título</label>
+          <input
+            id="fontSize"
+            type="number"
+            min="10"
+            max="32"
+            value={fontSize}
+            onChange={(event) => setFontSize(event.target.value)}
           />
         </div>
         <label className="checkbox-field">

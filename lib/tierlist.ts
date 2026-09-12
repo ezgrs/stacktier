@@ -3,10 +3,13 @@ import type { SimpleIcon } from "simple-icons";
 
 export const DEFAULT_WIDTH = 1200;
 export const DEFAULT_LABEL_PADDING = 16;
+export const DEFAULT_LABEL_FONT_SIZE = 20;
 export const MIN_WIDTH = 320;
 export const MAX_WIDTH = 2400;
 export const MIN_LABEL_PADDING = 4;
 export const MAX_LABEL_PADDING = 32;
+export const MIN_LABEL_FONT_SIZE = 10;
+export const MAX_LABEL_FONT_SIZE = 32;
 export const MAX_TIERS = 20;
 export const MAX_ICONS_PER_TIER = 64;
 export const MAX_TITLE_LENGTH = 48;
@@ -25,6 +28,7 @@ export type TierlistModel = {
   width: number;
   labels: boolean;
   labelPadding: number;
+  labelFontSize: number;
 };
 
 export type InputErrorCode =
@@ -40,7 +44,8 @@ export type InputErrorCode =
   | "invalid_theme"
   | "invalid_width"
   | "invalid_labels"
-  | "invalid_padding";
+  | "invalid_padding"
+  | "invalid_font_size";
 
 export class TierlistInputError extends Error {
   readonly status = 400;
@@ -102,7 +107,7 @@ function normalizeIconSlug(slug: string): string {
 function parseBoundedInteger(
   value: string,
   field: string,
-  code: "invalid_width" | "invalid_padding",
+  code: "invalid_width" | "invalid_padding" | "invalid_font_size",
   min: number,
   max: number,
 ): number {
@@ -261,12 +266,24 @@ export function parseTierlistSearchParams(
       )
     : DEFAULT_LABEL_PADDING;
 
+  const fontSizeValue = searchParams.get("fontSize");
+  const labelFontSize = fontSizeValue
+    ? parseBoundedInteger(
+        fontSizeValue,
+        "fontSize",
+        "invalid_font_size",
+        MIN_LABEL_FONT_SIZE,
+        MAX_LABEL_FONT_SIZE,
+      )
+    : DEFAULT_LABEL_FONT_SIZE;
+
   return {
     tiers: rawTiers.map(parseTierSpec),
     theme: themeValue,
     width,
     labels: labelsValue === "1",
     labelPadding,
+    labelFontSize,
   };
 }
 
@@ -319,9 +336,9 @@ function renderTierTitle(
   top: number,
   fill: string,
   padding: number,
+  fontSize: number,
 ): string {
-  const fontSize = 20;
-  const lineHeight = 23;
+  const lineHeight = Math.round(fontSize * 1.15);
   const availableWidth = Math.max(1, labelSize - padding * 2);
   const maxCharacters = Math.max(
     1,
@@ -438,7 +455,14 @@ export function renderTierlist(model: TierlistModel): string {
     output.push(
       `<rect x="0" y="${top}" width="${model.width}" height="${height}" fill="${colors.surface}" stroke="${colors.border}"/>`,
       `<rect x="0" y="${top}" width="${labelSize}" height="${labelSize}" fill="${labelColor}"/>`,
-      renderTierTitle(tier.title, labelSize, top, labelText, model.labelPadding),
+      renderTierTitle(
+        tier.title,
+        labelSize,
+        top,
+        labelText,
+        model.labelPadding,
+        model.labelFontSize,
+      ),
     );
 
     tier.icons.forEach((icon, index) => {

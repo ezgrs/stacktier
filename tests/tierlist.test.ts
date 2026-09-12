@@ -21,6 +21,7 @@ describe("parseTierlistSearchParams", () => {
     expect(model.width).toBe(800);
     expect(model.labels).toBe(false);
     expect(model.labelPadding).toBe(16);
+    expect(model.labelFontSize).toBe(20);
     expect(model.tiers.map((tier) => tier.title)).toEqual(["Pro", "Good"]);
     expect(model.tiers[0].icons.map((icon) => icon.slug)).toEqual([
       "python",
@@ -38,6 +39,7 @@ describe("parseTierlistSearchParams", () => {
     expect(model.width).toBe(1200);
     expect(model.labels).toBe(true);
     expect(model.labelPadding).toBe(16);
+    expect(model.labelFontSize).toBe(20);
   });
 
   it("accepts encoded Unicode titles", () => {
@@ -54,6 +56,7 @@ describe("parseTierlistSearchParams", () => {
     ["bad theme", "tier=FF0000;Pro;python&theme=blue", "invalid_theme"],
     ["bad labels", "tier=FF0000;Pro;python&labels=2", "invalid_labels"],
     ["bad padding", "tier=FF0000;Pro;python&padding=40", "invalid_padding"],
+    ["bad font size", "tier=FF0000;Pro;python&fontSize=40", "invalid_font_size"],
     ["unknown icon", "tier=FF0000;Pro;does-not-exist", "unknown_icon"],
     ["bad width", "tier=FF0000;Pro;python&width=100", "invalid_width"],
   ])("rejects %s", (_label, query, code) => {
@@ -97,6 +100,16 @@ describe("renderTierlist", () => {
     expect(svg).toContain("<tspan");
     expect(svg).not.toContain("textLength");
     expect(svg).not.toContain("lengthAdjust");
+  });
+
+  it("uses the requested font size consistently", () => {
+    const model = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;python&tier=00AAFF;Good;typescript&fontSize=24"),
+    );
+    const svg = renderTierlist(model);
+
+    expect(model.labelFontSize).toBe(24);
+    expect(svg.match(/font-size="24"/g)).toHaveLength(2);
   });
 
   it("wraps icons and calculates a taller row when width is narrow", () => {
