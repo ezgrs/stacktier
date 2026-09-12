@@ -1,0 +1,100 @@
+import { describe, expect, it } from "vitest";
+import {
+  parseTierlistSearchParams,
+  renderTierlist,
+  TierlistInputError,
+} from "../lib/tierlist";
+
+function params(query: string): URLSearchParams {
+  return new URLSearchParams(query);
+}
+
+describe("parseTierlistSearchParams", () => {
+  it("parses repeated tiers in order and resolves aliases", () => {
+    const model = parseTierlistSearchParams(
+      params(
+        "tier=FF0000;Pro;python,postgres,java&tier=FFD43B;Good;javascript,typescript&theme=dark&width=800&labels=0",
+      ),
+    );
+
+    expect(model.theme).toBe("dark");
+    expect(model.width).toBe(800);
+    expect(model.labels).toBe(false);
+    expect(model.tiers.map((tier) => tier.title)).toEqual(["Pro", "Good"]);
+    expect(model.tiers[0].icons.map((icon) => icon.slug)).toEqual([
+      "python",
+      "postgresql",
+      "openjdk",
+    ]);
+  });
+
+  it("uses defaults", () => {
+    const model = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;python"),
+    );
+
+    expect(model.theme).toBe("light");
+    expect(model.width).toBe(1200);
+    expect(model.labels).toBe(true);
+  });
+
+  it("accepts encoded Unicode titles", () => {
+    const model = parseTierlistSearchParams(
+      params("tier=00AAFF;Muito%20bom%20%E2%9C%A8;python"),
+    );
+
+    expect(model.tiers[0].title).toBe("Muito bom ✨");
+  });
+
+  it.each([
+    ["missing tier", "", "missing_tier"],
+    ["bad color", "tier=GG0000;Pro;python", "invalid_color"],
+    ["bad theme", "tier=FF0000;Pro;python&theme=blue", "invalid_theme"],
+    ["bad labels", "tier=FF0000;Pro;python&labels=2", "invalid_labels"],
+    ["unknown icon", "tier=FF0000;Pro;does-not-exist", "unknown_icon"],
+    ["bad width", "tier=FF0000;Pro;python&width=100", "invalid_width"],
+  ])("rejects %s", (_label, query, code) => {
+    try {
+      parseTierlistSearchParams(params(query));
+      throw new Error("expected parser to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(TierlistInputError);
+      expect((error as TierlistInputError).code).toBe(code);
+    }
+  });
+});
+
+describe("renderTierlist", () => {
+  it("produces a self-contained SVG", () => {
+    const model = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;python,postgres&labels=1&width=500"),
+    );
+    const svg = renderTierlist(model);
+
+    expect(svg).toMatch(/^<\?xml/);
+    expect(svg).toContain('xmlns="http://www.w3.org/2000/svg"');
+    expect(svg).toContain('width="500"');
+    expect(svg).toContain("Python");
+    expect(svg).toContain("PostgreSQL");
+    expect(svg).toContain("<path");
+    expect(svg).not.toContain("https://");
+  });
+
+  it("wraps icons and calculates a taller row when width is narrow", () => {
+    const narrow = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;python,postgres,java,javascript,typescript&width=320"),
+    );
+    const wide = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;python,postgres,java,javascript,typescript&width=1200"),
+    );
+
+    const narrowHeight = Number(
+      renderTierlist(narrow).match(/height="(\d+)"/)?.[1],
+    );
+    const wideHeight = Number(
+      renderTierlist(wide).match(/height="(\d+)"/)?.[1],
+    );
+
+    expect(narrowHeight).toBeGreaterThan(wideHeight);
+  });
+});
