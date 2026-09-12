@@ -17,7 +17,9 @@ Abra <http://localhost:3000> para usar o preview ou acesse diretamente:
 
 O endpoint retorna `image/svg+xml`. Os parâmetros `tier` são repetíveis e usam
 o formato `RRGGBB;Título;slug1,slug2`. `theme` aceita `light` ou `dark`,
-`width` aceita valores entre 320 e 2400, e `labels` aceita `0` ou `1`.
+`width` aceita valores entre 320 e 2400, `labels` aceita `0` ou `1`, e
+`padding` define o padding interno comum dos títulos dos tiers, entre 4 e 32
+pixels. O padrão de `padding` é 16.
 
 ## Checks
 

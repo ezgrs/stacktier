@@ -20,6 +20,7 @@ describe("parseTierlistSearchParams", () => {
     expect(model.theme).toBe("dark");
     expect(model.width).toBe(800);
     expect(model.labels).toBe(false);
+    expect(model.labelPadding).toBe(16);
     expect(model.tiers.map((tier) => tier.title)).toEqual(["Pro", "Good"]);
     expect(model.tiers[0].icons.map((icon) => icon.slug)).toEqual([
       "python",
@@ -36,6 +37,7 @@ describe("parseTierlistSearchParams", () => {
     expect(model.theme).toBe("light");
     expect(model.width).toBe(1200);
     expect(model.labels).toBe(true);
+    expect(model.labelPadding).toBe(16);
   });
 
   it("accepts encoded Unicode titles", () => {
@@ -51,6 +53,7 @@ describe("parseTierlistSearchParams", () => {
     ["bad color", "tier=GG0000;Pro;python", "invalid_color"],
     ["bad theme", "tier=FF0000;Pro;python&theme=blue", "invalid_theme"],
     ["bad labels", "tier=FF0000;Pro;python&labels=2", "invalid_labels"],
+    ["bad padding", "tier=FF0000;Pro;python&padding=40", "invalid_padding"],
     ["unknown icon", "tier=FF0000;Pro;does-not-exist", "unknown_icon"],
     ["bad width", "tier=FF0000;Pro;python&width=100", "invalid_width"],
   ])("rejects %s", (_label, query, code) => {
@@ -81,6 +84,7 @@ describe("renderTierlist", () => {
     expect(svg).not.toContain("textLength");
     expect(svg).not.toContain("lengthAdjust");
     expect(svg).toContain('dominant-baseline="middle"');
+    expect(svg).toContain('font-size="20"');
     expect(svg).toMatch(/width="100" height="100" fill="#FF0000"/);
   });
 

@@ -9,6 +9,7 @@ export function TierlistForm() {
   const [tiers, setTiers] = useState(initialTiers);
   const [theme, setTheme] = useState("light");
   const [width, setWidth] = useState("1200");
+  const [padding, setPadding] = useState("16");
   const [labels, setLabels] = useState(true);
 
   const endpoint = useMemo(() => {
@@ -20,6 +21,7 @@ export function TierlistForm() {
       .forEach((tier) => params.append("tier", tier));
     params.set("theme", theme);
     params.set("width", width || "1200");
+    params.set("padding", padding || "16");
     params.set("labels", labels ? "1" : "0");
     return `/tierlist?${params.toString()}`;
   }, [labels, theme, tiers, width]);
@@ -55,6 +57,17 @@ export function TierlistForm() {
             max="2400"
             value={width}
             onChange={(event) => setWidth(event.target.value)}
+          />
+        </div>
+        <div className="field-group">
+          <label htmlFor="padding">Padding do título</label>
+          <input
+            id="padding"
+            type="number"
+            min="4"
+            max="32"
+            value={padding}
+            onChange={(event) => setPadding(event.target.value)}
           />
         </div>
         <label className="checkbox-field">

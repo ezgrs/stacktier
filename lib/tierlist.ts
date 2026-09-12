@@ -2,8 +2,11 @@ import * as simpleIcons from "simple-icons";
 import type { SimpleIcon } from "simple-icons";
 
 export const DEFAULT_WIDTH = 1200;
+export const DEFAULT_LABEL_PADDING = 16;
 export const MIN_WIDTH = 320;
 export const MAX_WIDTH = 2400;
+export const MIN_LABEL_PADDING = 4;
+export const MAX_LABEL_PADDING = 32;
 export const MAX_TIERS = 20;
 export const MAX_ICONS_PER_TIER = 64;
 export const MAX_TITLE_LENGTH = 48;
@@ -21,6 +24,7 @@ export type TierlistModel = {
   theme: Theme;
   width: number;
   labels: boolean;
+  labelPadding: number;
 };
 
 export type InputErrorCode =
@@ -35,7 +39,8 @@ export type InputErrorCode =
   | "too_many_icons"
   | "invalid_theme"
   | "invalid_width"
-  | "invalid_labels";
+  | "invalid_labels"
+  | "invalid_padding";
 
 export class TierlistInputError extends Error {
   readonly status = 400;
@@ -94,17 +99,23 @@ function normalizeIconSlug(slug: string): string {
   return aliases[normalized] ?? normalized;
 }
 
-function parsePositiveInteger(value: string, field: string): number {
+function parseBoundedInteger(
+  value: string,
+  field: string,
+  code: "invalid_width" | "invalid_padding",
+  min: number,
+  max: number,
+): number {
   if (!/^\d+$/.test(value)) {
-    throw new TierlistInputError("invalid_width", field, "width must be an integer");
+    throw new TierlistInputError(code, field, `${field} must be an integer`);
   }
 
   const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed < MIN_WIDTH || parsed > MAX_WIDTH) {
+  if (!Number.isSafeInteger(parsed) || parsed < min || parsed > max) {
     throw new TierlistInputError(
-      "invalid_width",
+      code,
       field,
-      `width must be between ${MIN_WIDTH} and ${MAX_WIDTH}`,
+      `${field} must be between ${min} and ${max}`,
     );
   }
 
@@ -221,7 +232,13 @@ export function parseTierlistSearchParams(
 
   const widthValue = searchParams.get("width");
   const width = widthValue
-    ? parsePositiveInteger(widthValue, "width")
+    ? parseBoundedInteger(
+        widthValue,
+        "width",
+        "invalid_width",
+        MIN_WIDTH,
+        MAX_WIDTH,
+      )
     : DEFAULT_WIDTH;
 
   const labelsValue = searchParams.get("labels") ?? "1";
@@ -233,11 +250,23 @@ export function parseTierlistSearchParams(
     );
   }
 
+  const paddingValue = searchParams.get("padding");
+  const labelPadding = paddingValue
+    ? parseBoundedInteger(
+        paddingValue,
+        "padding",
+        "invalid_padding",
+        MIN_LABEL_PADDING,
+        MAX_LABEL_PADDING,
+      )
+    : DEFAULT_LABEL_PADDING;
+
   return {
     tiers: rawTiers.map(parseTierSpec),
     theme: themeValue,
     width,
     labels: labelsValue === "1",
+    labelPadding,
   };
 }
 
@@ -289,16 +318,27 @@ function renderTierTitle(
   labelSize: number,
   top: number,
   fill: string,
+  padding: number,
 ): string {
-  const availableWidth = labelSize - 24;
-  const maxCharacters = Math.max(8, Math.floor(availableWidth / 11));
-  const lines = wrapText(title, maxCharacters);
-  const longestLine = Math.max(...lines.map((line) => line.length));
-  const fontSize = Math.max(
-    12,
-    Math.min(20, Math.floor(availableWidth / Math.max(1, longestLine * 0.62))),
+  const fontSize = 20;
+  const lineHeight = 23;
+  const availableWidth = Math.max(1, labelSize - padding * 2);
+  const maxCharacters = Math.max(
+    1,
+    Math.floor(availableWidth / (fontSize * 0.62)),
   );
-  const lineHeight = Math.round(fontSize * 1.15);
+  const maxLines = Math.max(
+    1,
+    Math.floor((labelSize - padding * 2) / lineHeight),
+  );
+  let lines = wrapText(title, maxCharacters);
+
+  if (lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    const lastLine = lines[maxLines - 1];
+    lines[maxLines - 1] = `${lastLine.slice(0, Math.max(1, maxCharacters - 1))}…`;
+  }
+
   const firstLineOffset = -((lines.length - 1) * lineHeight) / 2;
 
   const tspans = lines
@@ -398,7 +438,7 @@ export function renderTierlist(model: TierlistModel): string {
     output.push(
       `<rect x="0" y="${top}" width="${model.width}" height="${height}" fill="${colors.surface}" stroke="${colors.border}"/>`,
       `<rect x="0" y="${top}" width="${labelSize}" height="${labelSize}" fill="${labelColor}"/>`,
-      renderTierTitle(tier.title, labelSize, top, labelText),
+      renderTierTitle(tier.title, labelSize, top, labelText, model.labelPadding),
     );
 
     tier.icons.forEach((icon, index) => {
