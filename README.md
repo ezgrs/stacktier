@@ -36,6 +36,14 @@ quadrados.
 Quando `labels=1`, os nomes dos ícones também ficam limitados à largura da
 célula e quebram em linhas para não invadir o item vizinho.
 
+Ícones específicos do projeto ficam em [lib/custom-icons.ts](lib/custom-icons.ts)
+e têm prioridade sobre o catálogo do Simple Icons. Atualmente, `java` usa o
+ícone customizado local, sem depender do ícone `openjdk`. O campo `svg` desses
+ícones é gerado automaticamente a partir de `path`/`hex` ou de uma lista
+`paths` com uma cor (`hex`) para cada path. Ícones cujo desenho não usa o
+viewBox padrão `0 0 24 24` podem declarar `viewBox` com `width` e `height`;
+por exemplo, o Java usa `0 0 32 32`.
+
 ## Checks
 
 ```bash

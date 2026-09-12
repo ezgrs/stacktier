@@ -1,5 +1,11 @@
 import * as simpleIcons from "simple-icons";
 import type { SimpleIcon } from "simple-icons";
+import {
+  customIcons,
+  materializeCustomIcon,
+  type CustomIconPath,
+  type CustomIconViewBox,
+} from "./custom-icons";
 
 export const DEFAULT_WIDTH = 1200;
 export const DEFAULT_MAX_ICONS_PER_ROW = 9;
@@ -23,12 +29,17 @@ const ICON_LABEL_BOTTOM_PADDING = 2;
 const TIER_TITLE_PADDING = 16;
 const TIER_TITLE_FONT_SIZE = 20;
 
+type RenderableIcon = SimpleIcon & {
+  paths?: CustomIconPath[];
+  viewBox?: CustomIconViewBox;
+};
+
 export type Theme = "light" | "dark";
 
 export type Tier = {
   color: string;
   title: string;
-  icons: SimpleIcon[];
+  icons: RenderableIcon[];
 };
 
 export type TierlistModel = {
@@ -78,13 +89,12 @@ const aliases: Record<string, string> = {
   js: "javascript",
   ts: "typescript",
   py: "python",
-  java: "openjdk",
   golang: "go",
   csharp: "csharp",
   cpp: "cplusplus",
 };
 
-function isSimpleIcon(value: unknown): value is SimpleIcon {
+function isSimpleIcon(value: unknown): value is RenderableIcon {
   if (!value || typeof value !== "object") {
     return false;
   }
@@ -98,13 +108,17 @@ function isSimpleIcon(value: unknown): value is SimpleIcon {
   );
 }
 
-function createIconMap(): Map<string, SimpleIcon> {
-  const map = new Map<string, SimpleIcon>();
+function createIconMap(): Map<string, RenderableIcon> {
+  const map = new Map<string, RenderableIcon>();
 
   for (const value of Object.values(simpleIcons)) {
     if (isSimpleIcon(value)) {
       map.set(value.slug, value);
     }
+  }
+
+  for (const icon of customIcons) {
+    map.set(icon.slug, materializeCustomIcon(icon));
   }
 
   return map;
@@ -438,6 +452,14 @@ function iconHaloColor(
   return relativeLuminance(backgroundHex) > 0.5 ? "#0f172a" : "#ffffff";
 }
 
+function getIconPaths(icon: RenderableIcon): CustomIconPath[] {
+  return icon.paths ?? [{ path: icon.path, hex: icon.hex }];
+}
+
+function getIconViewBox(icon: RenderableIcon): CustomIconViewBox {
+  return icon.viewBox ?? { width: 24, height: 24 };
+}
+
 function getTitleFontSize(
   title: string,
   labelWidth: number,
@@ -645,25 +667,47 @@ export function renderTierlist(model: TierlistModel): string {
         row * (itemHeight + layout.gap);
       const iconX = x;
       const iconY = y;
-      const haloColor = iconHaloColor(
-        icon.hex,
-        colors.surface,
-        model.theme === "dark",
-      );
+      const iconPaths = getIconPaths(icon);
+      const iconViewBox = getIconViewBox(icon);
+      const viewBoxWidth = iconViewBox.width;
+      const viewBoxHeight = iconViewBox.height;
+      const viewBoxCenterX = viewBoxWidth / 2;
+      const viewBoxCenterY = viewBoxHeight / 2;
+      const needsHalo =
+        model.theme === "dark" ||
+        iconPaths.some(
+          (path) => iconHaloColor(path.hex, colors.surface, false) !== null,
+        );
+      const haloColor = needsHalo
+        ? relativeLuminance(colors.surface) > 0.5
+          ? "#0f172a"
+          : "#ffffff"
+        : null;
       const haloStrokeWidth = 2.5;
-      const iconScale =
-        (24 - model.iconPadding * 2) /
-        (24 + (haloColor ? haloStrokeWidth : 0));
+      const iconScale = Math.min(
+        (viewBoxWidth - model.iconPadding * 2) /
+          (viewBoxWidth + (haloColor ? haloStrokeWidth : 0)),
+        (viewBoxHeight - model.iconPadding * 2) /
+          (viewBoxHeight + (haloColor ? haloStrokeWidth : 0)),
+      );
       const iconTransform =
         iconScale < 1
-          ? ` transform="translate(12 12) scale(${iconScale.toFixed(4)}) translate(-12 -12)"`
+          ? ` transform="translate(${viewBoxCenterX} ${viewBoxCenterY}) scale(${iconScale.toFixed(4)}) translate(-${viewBoxCenterX} -${viewBoxCenterY})"`
           : "";
       const halo = haloColor
-        ? `<path fill="${haloColor}" stroke="${haloColor}" stroke-width="${haloStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" opacity="0.95" d="${icon.path}"/>`
+        ? iconPaths
+            .map(
+              (path) =>
+                `<path fill="${haloColor}" stroke="${haloColor}" stroke-width="${haloStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" opacity="0.95" d="${path.path}"/>`,
+            )
+            .join("")
         : "";
+      const iconMarkup = iconPaths
+        .map((path) => `<path fill="#${path.hex}" d="${path.path}"/>`)
+        .join("");
 
       output.push(
-        `<svg x="${iconX}" y="${iconY}" width="${layout.iconSize}" height="${layout.iconSize}" viewBox="0 0 24 24" role="img" aria-label="${escapeXml(icon.title)}"><title>${escapeXml(icon.title)}</title><rect x="0" y="0" width="24" height="24" fill="none" pointer-events="all"><title>${escapeXml(icon.title)}</title></rect><g${iconTransform}>${halo}<path fill="#${icon.hex}" d="${icon.path}"/></g></svg>`,
+        `<svg x="${iconX}" y="${iconY}" width="${layout.iconSize}" height="${layout.iconSize}" viewBox="0 0 ${viewBoxWidth} ${viewBoxHeight}" role="img" aria-label="${escapeXml(icon.title)}"><title>${escapeXml(icon.title)}</title><rect x="0" y="0" width="${viewBoxWidth}" height="${viewBoxHeight}" fill="none" pointer-events="all"><title>${escapeXml(icon.title)}</title></rect><g${iconTransform}>${halo}${iconMarkup}</g></svg>`,
       );
 
       if (model.labels) {

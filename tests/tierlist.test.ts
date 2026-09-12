@@ -28,8 +28,12 @@ describe("parseTierlistSearchParams", () => {
     expect(model.tiers[0].icons.map((icon) => icon.slug)).toEqual([
       "python",
       "postgresql",
-      "openjdk",
+      "java",
     ]);
+    expect(model.tiers[0].icons[2].source).toBe("local:custom-icons");
+    expect(model.tiers[0].icons[2].paths).toHaveLength(2);
+    expect(model.tiers[0].icons[2].svg).toContain('fill="#4E7896"');
+    expect(model.tiers[0].icons[2].svg).toContain('fill="#F58219"');
   });
 
   it("uses defaults", () => {
@@ -203,6 +207,18 @@ describe("renderTierlist", () => {
     expect(svg).toContain(
       '<svg x="70" y="0" width="64" height="64" viewBox="0 0 24 24"',
     );
+  });
+
+  it("renders custom icons with multiple colored paths", () => {
+    const model = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;java&labels=0"),
+    );
+    const svg = renderTierlist(model);
+
+    expect(svg).toContain('<path fill="#4E7896"');
+    expect(svg).toContain('<path fill="#F58219"');
+    expect(svg).toContain('viewBox="0 0 32 32"');
+    expect(svg).toContain('width="32" height="32" fill="none" pointer-events="all"');
   });
 
   it("adds a halo to every dark-mode icon", () => {
