@@ -573,7 +573,7 @@ export function renderTierlist(model: TierlistModel): string {
         : "";
 
       output.push(
-        `<svg x="${iconX}" y="${iconY}" width="${layout.iconSize}" height="${layout.iconSize}" viewBox="0 0 24 24" role="img" aria-label="${escapeXml(icon.title)}"><title>${escapeXml(icon.title)}</title><g${iconTransform}>${halo}<path fill="#${icon.hex}" d="${icon.path}"/></g></svg>`,
+        `<svg x="${iconX}" y="${iconY}" width="${layout.iconSize}" height="${layout.iconSize}" viewBox="0 0 24 24" role="img" aria-label="${escapeXml(icon.title)}"><title>${escapeXml(icon.title)}</title><rect x="0" y="0" width="24" height="24" fill="none" pointer-events="all"><title>${escapeXml(icon.title)}</title></rect><g${iconTransform}>${halo}<path fill="#${icon.hex}" d="${icon.path}"/></g></svg>`,
       );
 
       if (model.labels) {

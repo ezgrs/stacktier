@@ -98,6 +98,7 @@ describe("renderTierlist", () => {
     expect(svg).toContain("PostgreSQL");
     expect(svg).toContain("<title>Python</title>");
     expect(svg).toContain("<title>PostgreSQL</title>");
+    expect(svg).toContain('width="24" height="24" fill="none" pointer-events="all"');
     expect(svg).toContain("<path");
     expect(svg).not.toContain("https://");
     expect(svg).not.toContain('rx="12"');
