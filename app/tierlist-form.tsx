@@ -11,6 +11,7 @@ export function TierlistForm() {
   const [width, setWidth] = useState("1200");
   const [maxIconsPerRow, setMaxIconsPerRow] = useState("9");
   const [iconPadding, setIconPadding] = useState("0");
+  const [iconSize, setIconSize] = useState("48");
   const [iconFontSize, setIconFontSize] = useState("11");
   const [labels, setLabels] = useState(true);
 
@@ -25,10 +26,11 @@ export function TierlistForm() {
     params.set("width", width || "1200");
     params.set("maxIconsPerRow", maxIconsPerRow || "9");
     params.set("iconPadding", iconPadding || "0");
+    params.set("iconSize", iconSize || "48");
     params.set("iconFontSize", iconFontSize || "11");
     params.set("labels", labels ? "1" : "0");
     return `/tierlist?${params.toString()}`;
-  }, [iconFontSize, iconPadding, labels, maxIconsPerRow, theme, tiers, width]);
+  }, [iconFontSize, iconPadding, iconSize, labels, maxIconsPerRow, theme, tiers, width]);
 
   return (
     <section className="builder-card">
@@ -94,6 +96,17 @@ export function TierlistForm() {
             max="24"
             value={iconFontSize}
             onChange={(event) => setIconFontSize(event.target.value)}
+          />
+        </div>
+        <div className="field-group">
+          <label htmlFor="iconSize">Tamanho dos ícones</label>
+          <input
+            id="iconSize"
+            type="number"
+            min="16"
+            max="128"
+            value={iconSize}
+            onChange={(event) => setIconSize(event.target.value)}
           />
         </div>
         <label className="checkbox-field">

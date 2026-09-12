@@ -12,6 +12,9 @@ export const MAX_MAX_ICONS_PER_ROW = MAX_ICONS_PER_TIER;
 export const DEFAULT_ICON_PADDING = 0;
 export const MIN_ICON_PADDING = 0;
 export const MAX_ICON_PADDING = 10;
+export const DEFAULT_ICON_SIZE = 48;
+export const MIN_ICON_SIZE = 16;
+export const MAX_ICON_SIZE = 128;
 export const DEFAULT_ICON_FONT_SIZE = 11;
 export const MIN_ICON_FONT_SIZE = 6;
 export const MAX_ICON_FONT_SIZE = 24;
@@ -35,6 +38,7 @@ export type TierlistModel = {
   labels: boolean;
   maxIconsPerRow: number;
   iconPadding: number;
+  iconSize: number;
   iconFontSize: number;
 };
 
@@ -53,6 +57,7 @@ export type InputErrorCode =
   | "invalid_labels"
   | "invalid_max_icons_per_row"
   | "invalid_icon_padding"
+  | "invalid_icon_size"
   | "invalid_icon_font_size";
 
 export class TierlistInputError extends Error {
@@ -119,6 +124,7 @@ function parseBoundedInteger(
     | "invalid_width"
     | "invalid_max_icons_per_row"
     | "invalid_icon_padding"
+    | "invalid_icon_size"
     | "invalid_icon_font_size",
   min: number,
   max: number,
@@ -300,6 +306,17 @@ export function parseTierlistSearchParams(
       )
     : DEFAULT_ICON_FONT_SIZE;
 
+  const iconSizeValue = searchParams.get("iconSize");
+  const iconSize = iconSizeValue
+    ? parseBoundedInteger(
+        iconSizeValue,
+        "iconSize",
+        "invalid_icon_size",
+        MIN_ICON_SIZE,
+        MAX_ICON_SIZE,
+      )
+    : DEFAULT_ICON_SIZE;
+
   return {
     tiers: rawTiers.map(parseTierSpec),
     theme: themeValue,
@@ -307,6 +324,7 @@ export function parseTierlistSearchParams(
     labels: labelsValue === "1",
     maxIconsPerRow,
     iconPadding,
+    iconSize,
     iconFontSize,
   };
 }
@@ -474,7 +492,7 @@ function getIconLabelLines(
 function calculateLayout(model: TierlistModel) {
   const horizontalPadding = 0;
   const gap = 0;
-  const iconSize = 32 + TIER_TITLE_PADDING;
+  const iconSize = model.iconSize;
   const itemWidth = iconSize;
   const iconLabelLineHeight = getIconLabelLineHeight(model.iconFontSize);
   const labelWidth = getLabelWidth(

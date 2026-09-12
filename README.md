@@ -26,7 +26,8 @@ separadamente por `iconPadding`, entre 0 e 10, com padrão 0.
 `maxIconsPerRow` limita a quantidade de ícones por linha, com padrão 9 e
 limite máximo de 64. `iconFontSize` define o tamanho dos nomes abaixo dos
 ícones, entre 6 e 24 pixels, com padrão 11; o wrapping dos nomes acompanha esse
-valor.
+valor. `iconSize` define o lado do quadrado renderizado de cada ícone, entre 16
+e 128 pixels, com padrão 48. O `viewBox` interno continua sendo `0 0 24 24`.
 
 O rótulo colorido de cada tier acompanha a altura do próprio bloco de ícones.
 Sua largura é compartilhada entre os tiers e os títulos reduzem a fonte quando

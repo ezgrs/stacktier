@@ -22,6 +22,7 @@ describe("parseTierlistSearchParams", () => {
     expect(model.labels).toBe(false);
     expect(model.maxIconsPerRow).toBe(9);
     expect(model.iconPadding).toBe(0);
+    expect(model.iconSize).toBe(48);
     expect(model.iconFontSize).toBe(11);
     expect(model.tiers.map((tier) => tier.title)).toEqual(["Pro", "Good"]);
     expect(model.tiers[0].icons.map((icon) => icon.slug)).toEqual([
@@ -41,6 +42,7 @@ describe("parseTierlistSearchParams", () => {
     expect(model.labels).toBe(true);
     expect(model.maxIconsPerRow).toBe(9);
     expect(model.iconPadding).toBe(0);
+    expect(model.iconSize).toBe(48);
     expect(model.iconFontSize).toBe(11);
   });
 
@@ -71,6 +73,11 @@ describe("parseTierlistSearchParams", () => {
       "bad icon font size",
       "tier=FF0000;Pro;python&iconFontSize=25",
       "invalid_icon_font_size",
+    ],
+    [
+      "bad icon size",
+      "tier=FF0000;Pro;python&iconSize=129",
+      "invalid_icon_size",
     ],
     ["unknown icon", "tier=FF0000;Pro;does-not-exist", "unknown_icon"],
     ["bad width", "tier=FF0000;Pro;python&width=100", "invalid_width"],
@@ -184,6 +191,18 @@ describe("renderTierlist", () => {
     expect(svg.match(/font-size="16"/g)).toHaveLength(2);
     expect(svg).toContain('dy="20"');
     expect(svg).toContain('height="220" fill="#FF0000"');
+  });
+
+  it("uses iconSize for the rendered icon square", () => {
+    const model = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;python&iconSize=64"),
+    );
+    const svg = renderTierlist(model);
+
+    expect(model.iconSize).toBe(64);
+    expect(svg).toContain(
+      '<svg x="70" y="0" width="64" height="64" viewBox="0 0 24 24"',
+    );
   });
 
   it("adds a halo to every dark-mode icon", () => {
