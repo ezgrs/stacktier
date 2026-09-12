@@ -127,15 +127,28 @@ Invalid input returns `400` with JSON:
 
 ```json
 {
-  "error": "unknown_icon",
-  "message": "unknown Simple Icons slug: does-not-exist",
-  "field": "tier[0].icons[1]"
+  "error": "validation_error",
+  "message": "request contains 2 validation errors",
+  "field": "theme",
+  "errors": [
+    {
+      "error": "invalid_theme",
+      "message": "theme must be either light or dark",
+      "field": "theme"
+    },
+    {
+      "error": "unknown_icon",
+      "message": "unknown Simple Icons slug: does-not-exist",
+      "field": "tier[0].icons[1]"
+    }
+  ]
 }
 ```
 
-The `error` field is a stable machine-readable code and `field` identifies the
-invalid part of the request. Unexpected failures return `500` with
-`error: "internal_error"`.
+The `errors` array contains every validation problem found in the request. The
+top-level `field` points to the first one. For a single problem, the top-level
+`error` and `message` use that problem directly. Unexpected failures return
+`500` with `error: "internal_error"`.
 
 ## Embed stacktier in a GitHub README
 

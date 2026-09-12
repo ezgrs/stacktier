@@ -23,9 +23,17 @@ export async function GET(request: Request): Promise<Response> {
     if (error instanceof TierlistInputError) {
       return Response.json(
         {
-          error: error.code,
-          message: error.message,
+          error: error.issues.length > 1 ? "validation_error" : error.code,
+          message:
+            error.issues.length > 1
+              ? `request contains ${error.issues.length} validation errors`
+              : error.message,
           field: error.field,
+          errors: error.issues.map((issue) => ({
+            error: issue.code,
+            message: issue.message,
+            field: issue.field,
+          })),
         },
         { status: error.status },
       );

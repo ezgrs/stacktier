@@ -71,15 +71,24 @@ export type InputErrorCode =
   | "invalid_icon_size"
   | "invalid_icon_font_size";
 
+export type TierlistInputIssue = {
+  code: InputErrorCode;
+  field: string;
+  message: string;
+};
+
 export class TierlistInputError extends Error {
   readonly status = 400;
+  readonly issues: readonly TierlistInputIssue[];
 
   constructor(
     readonly code: InputErrorCode,
     readonly field: string,
     message: string,
+    issues: readonly TierlistInputIssue[] = [{ code, field, message }],
   ) {
     super(message);
+    this.issues = issues;
     this.name = "TierlistInputError";
   }
 }
@@ -142,33 +151,43 @@ function parseBoundedInteger(
     | "invalid_icon_font_size",
   min: number,
   max: number,
+  fallback: number,
+  issues: TierlistInputIssue[],
 ): number {
   if (!/^\d+$/.test(value)) {
-    throw new TierlistInputError(code, field, `${field} must be an integer`);
+    issues.push({ code, field, message: `${field} must be an integer` });
+    return fallback;
   }
 
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < min || parsed > max) {
-    throw new TierlistInputError(
+    issues.push({
       code,
       field,
-      `${field} must be between ${min} and ${max}`,
-    );
+      message: `${field} must be between ${min} and ${max}`,
+    });
+    return fallback;
   }
 
   return parsed;
 }
 
-function parseTierSpec(rawSpec: string, index: number): Tier {
+function parseTierSpec(
+  rawSpec: string,
+  index: number,
+  issues: TierlistInputIssue[],
+): Tier | null {
   const field = `tier[${index}]`;
+  const initialIssueCount = issues.length;
   const parts = rawSpec.split(";");
 
   if (parts.length !== 3) {
-    throw new TierlistInputError(
-      "invalid_tier_spec",
+    issues.push({
+      code: "invalid_tier_spec",
       field,
-      "tier must use the format RRGGBB;Title;slug1,slug2",
-    );
+      message: "tier must use the format RRGGBB;Title;slug1,slug2",
+    });
+    return null;
   }
 
   const [rawColor, rawTitle, rawIconList] = parts;
@@ -176,11 +195,11 @@ function parseTierSpec(rawSpec: string, index: number): Tier {
   const title = rawTitle.trim();
 
   if (!/^[0-9A-F]{6}$/.test(color)) {
-    throw new TierlistInputError(
-      "invalid_color",
-      `${field}.color`,
-      "color must contain exactly six hexadecimal digits",
-    );
+    issues.push({
+      code: "invalid_color",
+      field: `${field}.color`,
+      message: "color must contain exactly six hexadecimal digits",
+    });
   }
 
   if (
@@ -188,83 +207,107 @@ function parseTierSpec(rawSpec: string, index: number): Tier {
     title.length > MAX_TITLE_LENGTH ||
     title.includes(",")
   ) {
-    throw new TierlistInputError(
-      "invalid_title",
-      `${field}.title`,
-      `title must be between 1 and ${MAX_TITLE_LENGTH} characters and cannot contain commas`,
-    );
+    issues.push({
+      code: "invalid_title",
+      field: `${field}.title`,
+      message: `title must be between 1 and ${MAX_TITLE_LENGTH} characters and cannot contain commas`,
+    });
   }
 
   const rawSlugs = rawIconList.split(",").map((slug) => slug.trim());
-  if (rawSlugs.length === 0 || rawSlugs.some((slug) => slug.length === 0)) {
-    throw new TierlistInputError(
-      "invalid_icon_list",
-      `${field}.icons`,
-      "icons must contain at least one comma-separated slug",
-    );
+  if (rawSlugs.some((slug) => slug.length === 0)) {
+    issues.push({
+      code: "invalid_icon_list",
+      field: `${field}.icons`,
+      message: "icons must contain at least one comma-separated slug",
+    });
   }
 
   if (rawSlugs.length > MAX_ICONS_PER_TIER) {
-    throw new TierlistInputError(
-      "too_many_icons",
-      `${field}.icons`,
-      `a tier can contain at most ${MAX_ICONS_PER_TIER} icons`,
-    );
+    issues.push({
+      code: "too_many_icons",
+      field: `${field}.icons`,
+      message: `a tier can contain at most ${MAX_ICONS_PER_TIER} icons`,
+    });
   }
 
-  const icons = rawSlugs.map((rawSlug, iconIndex) => {
+  const icons: RenderableIcon[] = [];
+  rawSlugs.forEach((rawSlug, iconIndex) => {
+    if (rawSlug.length === 0) {
+      return;
+    }
+
     const slug = normalizeIconSlug(rawSlug);
     if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
-      throw new TierlistInputError(
-        "invalid_icon_slug",
-        `${field}.icons[${iconIndex}]`,
-        "icon slugs may contain lowercase letters, numbers and hyphens",
-      );
+      issues.push({
+        code: "invalid_icon_slug",
+        field: `${field}.icons[${iconIndex}]`,
+        message: "icon slugs may contain lowercase letters, numbers and hyphens",
+      });
+      return;
     }
 
     const icon = iconMap.get(slug);
     if (!icon) {
-      throw new TierlistInputError(
-        "unknown_icon",
-        `${field}.icons[${iconIndex}]`,
-        `unknown Simple Icons slug: ${rawSlug}`,
-      );
+      issues.push({
+        code: "unknown_icon",
+        field: `${field}.icons[${iconIndex}]`,
+        message: `unknown Simple Icons slug: ${rawSlug}`,
+      });
+      return;
     }
 
-    return icon;
+    icons.push(icon);
   });
 
-  return { color, title, icons };
+  return issues.length === initialIssueCount ? { color, title, icons } : null;
+}
+
+function throwInputIssues(issues: TierlistInputIssue[]): never {
+  const firstIssue = issues[0];
+  if (!firstIssue) {
+    throw new Error("at least one input issue is required");
+  }
+
+  throw new TierlistInputError(
+    firstIssue.code,
+    firstIssue.field,
+    issues.length === 1
+      ? firstIssue.message
+      : `request contains ${issues.length} validation errors`,
+    issues,
+  );
 }
 
 export function parseTierlistSearchParams(
   searchParams: URLSearchParams,
 ): TierlistModel {
+  const issues: TierlistInputIssue[] = [];
   const rawTiers = searchParams.getAll("tier");
 
   if (rawTiers.length === 0) {
-    throw new TierlistInputError(
-      "missing_tier",
-      "tier",
-      "at least one tier parameter is required",
-    );
+    issues.push({
+      code: "missing_tier",
+      field: "tier",
+      message: "at least one tier parameter is required",
+    });
   }
 
   if (rawTiers.length > MAX_TIERS) {
-    throw new TierlistInputError(
-      "too_many_tiers",
-      "tier",
-      `a tierlist can contain at most ${MAX_TIERS} tiers`,
-    );
+    issues.push({
+      code: "too_many_tiers",
+      field: "tier",
+      message: `a tierlist can contain at most ${MAX_TIERS} tiers`,
+    });
   }
 
   const themeValue = searchParams.get("theme") ?? "light";
   if (themeValue !== "light" && themeValue !== "dark") {
-    throw new TierlistInputError(
-      "invalid_theme",
-      "theme",
-      "theme must be either light or dark",
-    );
+    issues.push({
+      code: "invalid_theme",
+      field: "theme",
+      message: "theme must be either light or dark",
+    });
   }
 
   const widthValue = searchParams.get("width");
@@ -275,16 +318,18 @@ export function parseTierlistSearchParams(
         "invalid_width",
         MIN_WIDTH,
         MAX_WIDTH,
+        DEFAULT_WIDTH,
+        issues,
       )
     : DEFAULT_WIDTH;
 
   const labelsValue = searchParams.get("labels") ?? "1";
   if (labelsValue !== "0" && labelsValue !== "1") {
-    throw new TierlistInputError(
-      "invalid_labels",
-      "labels",
-      "labels must be either 0 or 1",
-    );
+    issues.push({
+      code: "invalid_labels",
+      field: "labels",
+      message: "labels must be either 0 or 1",
+    });
   }
 
   const maxIconsPerRowValue = searchParams.get("maxIconsPerRow");
@@ -295,6 +340,8 @@ export function parseTierlistSearchParams(
         "invalid_max_icons_per_row",
         MIN_MAX_ICONS_PER_ROW,
         MAX_MAX_ICONS_PER_ROW,
+        DEFAULT_MAX_ICONS_PER_ROW,
+        issues,
       )
     : DEFAULT_MAX_ICONS_PER_ROW;
 
@@ -306,6 +353,8 @@ export function parseTierlistSearchParams(
         "invalid_icon_padding",
         MIN_ICON_PADDING,
         MAX_ICON_PADDING,
+        DEFAULT_ICON_PADDING,
+        issues,
       )
     : DEFAULT_ICON_PADDING;
 
@@ -317,6 +366,8 @@ export function parseTierlistSearchParams(
         "invalid_icon_font_size",
         MIN_ICON_FONT_SIZE,
         MAX_ICON_FONT_SIZE,
+        DEFAULT_ICON_FONT_SIZE,
+        issues,
       )
     : DEFAULT_ICON_FONT_SIZE;
 
@@ -328,12 +379,22 @@ export function parseTierlistSearchParams(
         "invalid_icon_size",
         MIN_ICON_SIZE,
         MAX_ICON_SIZE,
+        DEFAULT_ICON_SIZE,
+        issues,
       )
     : DEFAULT_ICON_SIZE;
 
+  const tiers = rawTiers
+    .map((rawTier, index) => parseTierSpec(rawTier, index, issues))
+    .filter((tier): tier is Tier => tier !== null);
+
+  if (issues.length > 0) {
+    throwInputIssues(issues);
+  }
+
   return {
-    tiers: rawTiers.map(parseTierSpec),
-    theme: themeValue,
+    tiers,
+    theme: themeValue as Theme,
     width,
     labels: labelsValue === "1",
     maxIconsPerRow,

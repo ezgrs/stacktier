@@ -94,6 +94,35 @@ describe("parseTierlistSearchParams", () => {
       expect((error as TierlistInputError).code).toBe(code);
     }
   });
+
+  it("collects validation errors across tiers and query parameters", () => {
+    try {
+      parseTierlistSearchParams(
+        params(
+          "tier=GG0000;;python,does-not-exist&tier=000000;Good;missing-icon&theme=blue&width=100&labels=2&maxIconsPerRow=0&iconPadding=11&iconFontSize=25&iconSize=129",
+        ),
+      );
+      throw new Error("expected parser to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(TierlistInputError);
+
+      const inputError = error as TierlistInputError;
+      expect(inputError.message).toBe("request contains 11 validation errors");
+      expect(inputError.issues.map((issue) => issue.field)).toEqual([
+        "theme",
+        "width",
+        "labels",
+        "maxIconsPerRow",
+        "iconPadding",
+        "iconFontSize",
+        "iconSize",
+        "tier[0].color",
+        "tier[0].title",
+        "tier[0].icons[1]",
+        "tier[1].icons[0]",
+      ]);
+    }
+  });
 });
 
 describe("renderTierlist", () => {
