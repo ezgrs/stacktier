@@ -20,7 +20,8 @@ o formato `RRGGBB;Título;slug1,slug2`. `theme` aceita `light` ou `dark`,
 `width` aceita valores entre 320 e 2400, `labels` aceita `0` ou `1`, e
 `padding` define o padding interno comum dos títulos dos tiers, entre 4 e 32
 pixels. O padrão de `padding` é 16. `fontSize` define o tamanho comum da fonte
-dos títulos, entre 10 e 32 pixels, com padrão 20.
+dos títulos, entre 10 e 32 pixels, com padrão 20. O mesmo `padding` também
+controla o tamanho dos quadrados dos ícones, sem adicionar espaço entre eles.
 
 ## Checks
 

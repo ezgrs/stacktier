@@ -82,6 +82,8 @@ describe("renderTierlist", () => {
     expect(svg).toContain('width="500"');
     expect(svg).toContain("Python");
     expect(svg).toContain("PostgreSQL");
+    expect(svg).toContain("<title>Python</title>");
+    expect(svg).toContain("<title>PostgreSQL</title>");
     expect(svg).toContain("<path");
     expect(svg).not.toContain("https://");
     expect(svg).not.toContain('rx="12"');
@@ -112,6 +114,16 @@ describe("renderTierlist", () => {
 
     expect(model.labelFontSize).toBe(24);
     expect(svg.match(/font-size="24"/g)).toHaveLength(2);
+  });
+
+  it("grows icon squares with padding without adding a gap", () => {
+    const model = parseTierlistSearchParams(
+      params("tier=FF0000;Pro;python,typescript&padding=24"),
+    );
+    const svg = renderTierlist(model);
+
+    expect(svg).toContain('<svg x="72" y="0" width="56" height="56"');
+    expect(svg).toMatch(/width="72" height="72" fill="#FF0000"/);
   });
 
   it("wraps icons and calculates a taller row when width is narrow", () => {

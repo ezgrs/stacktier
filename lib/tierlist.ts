@@ -379,9 +379,9 @@ function contrastText(hex: string): string {
 function calculateLayout(model: TierlistModel) {
   const horizontalPadding = 0;
   const gap = 0;
-  const iconSize = 48;
+  const iconSize = 32 + model.labelPadding;
   const itemWidth = iconSize;
-  const itemHeight = model.labels ? 64 : iconSize;
+  const itemHeight = model.labels ? iconSize + 16 : iconSize;
 
   const tiers = model.tiers.map((tier) => {
     const maxColumns = Math.max(
@@ -480,12 +480,12 @@ export function renderTierlist(model: TierlistModel): string {
       const iconY = y;
 
       output.push(
-        `<svg x="${iconX}" y="${iconY}" width="${layout.iconSize}" height="${layout.iconSize}" viewBox="0 0 24 24" role="img" aria-label="${escapeXml(icon.title)}"><path fill="#${icon.hex}" d="${icon.path}"/></svg>`,
+        `<svg x="${iconX}" y="${iconY}" width="${layout.iconSize}" height="${layout.iconSize}" viewBox="0 0 24 24" role="img" aria-label="${escapeXml(icon.title)}"><title>${escapeXml(icon.title)}</title><path fill="#${icon.hex}" d="${icon.path}"/></svg>`,
       );
 
       if (model.labels) {
         output.push(
-          `<text x="${x + layout.itemWidth / 2}" y="${y + 62}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="${colors.muted}">${escapeXml(icon.title)}</text>`,
+          `<text x="${x + layout.itemWidth / 2}" y="${y + layout.iconSize + 14}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="${colors.muted}">${escapeXml(icon.title)}</text>`,
         );
       }
     });
