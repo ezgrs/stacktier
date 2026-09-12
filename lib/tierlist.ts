@@ -250,6 +250,67 @@ function escapeXml(value: string): string {
     .replaceAll("'", "&apos;");
 }
 
+function wrapText(text: string, maxCharacters: number): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    if (word.length > maxCharacters) {
+      if (current) {
+        lines.push(current);
+        current = "";
+      }
+
+      for (let index = 0; index < word.length; index += maxCharacters) {
+        lines.push(word.slice(index, index + maxCharacters));
+      }
+      continue;
+    }
+
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= maxCharacters) {
+      current = candidate;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  }
+
+  if (current) {
+    lines.push(current);
+  }
+
+  return lines.length > 0 ? lines : [text];
+}
+
+function renderTierTitle(
+  title: string,
+  labelSize: number,
+  top: number,
+  fill: string,
+): string {
+  const availableWidth = labelSize - 24;
+  const maxCharacters = Math.max(8, Math.floor(availableWidth / 11));
+  const lines = wrapText(title, maxCharacters);
+  const longestLine = Math.max(...lines.map((line) => line.length));
+  const fontSize = Math.max(
+    12,
+    Math.min(20, Math.floor(availableWidth / Math.max(1, longestLine * 0.62))),
+  );
+  const lineHeight = Math.round(fontSize * 1.15);
+  const firstLineOffset = -((lines.length - 1) * lineHeight) / 2;
+
+  const tspans = lines
+    .map(
+      (line, index) =>
+        `<tspan x="${labelSize / 2}" dy="${index === 0 ? firstLineOffset : lineHeight}">${escapeXml(line)}</tspan>`,
+    )
+    .join("");
+
+  return `<text x="${labelSize / 2}" y="${top + labelSize / 2}" dominant-baseline="middle" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="${fill}">${tspans}</text>`;
+}
+
 function contrastText(hex: string): string {
   const red = Number.parseInt(hex.slice(0, 2), 16);
   const green = Number.parseInt(hex.slice(2, 4), 16);
@@ -259,33 +320,43 @@ function contrastText(hex: string): string {
 }
 
 function calculateLayout(model: TierlistModel) {
-  const labelWidth = Math.max(132, Math.min(220, Math.round(model.width * 0.18)));
   const horizontalPadding = 24;
   const gap = 12;
   const itemWidth = model.labels ? 104 : 72;
   const itemHeight = model.labels ? 76 : 64;
-  const contentWidth = model.width - labelWidth - horizontalPadding * 2;
-  const columns = Math.max(
-    1,
-    Math.floor((contentWidth + gap) / (itemWidth + gap)),
-  );
 
   const tiers = model.tiers.map((tier) => {
-    const rows = Math.ceil(tier.icons.length / columns);
-    const height = Math.max(
-      96,
-      horizontalPadding + rows * itemHeight + Math.max(0, rows - 1) * gap,
+    const maxColumns = Math.max(
+      1,
+      Math.floor(
+        (model.width - horizontalPadding * 2 + gap) / (itemWidth + gap),
+      ),
     );
-    return { tier, rows, height };
+
+    // Choose the most compact valid layout. The label side is the exact
+    // height of the icon area, so the colored label and the icon row match.
+    for (let columns = maxColumns; columns >= 1; columns -= 1) {
+      const rows = Math.ceil(tier.icons.length / columns);
+      const height =
+        horizontalPadding +
+        rows * itemHeight +
+        Math.max(0, rows - 1) * gap;
+      const availableWidth = model.width - height - horizontalPadding * 2;
+      const requiredWidth = columns * itemWidth + (columns - 1) * gap;
+
+      if (availableWidth >= requiredWidth || columns === 1) {
+        return { tier, rows, columns, height, labelSize: height };
+      }
+    }
+
+    throw new Error("unable to calculate tier layout");
   });
 
   return {
-    labelWidth,
     horizontalPadding,
     gap,
     itemWidth,
     itemHeight,
-    columns,
     tiers,
     height: tiers.reduce((total, item) => total + item.height, 0),
   };
@@ -321,20 +392,20 @@ export function renderTierlist(model: TierlistModel): string {
   ];
 
   let top = 0;
-  for (const { tier, height } of layout.tiers) {
+  for (const { tier, height, labelSize, columns } of layout.tiers) {
     const labelColor = `#${tier.color}`;
     const labelText = contrastText(tier.color);
     output.push(
       `<rect x="0" y="${top}" width="${model.width}" height="${height}" fill="${colors.surface}" stroke="${colors.border}"/>`,
-      `<rect x="0" y="${top}" width="${layout.labelWidth}" height="${height}" fill="${labelColor}"/>`,
-      `<text x="${layout.labelWidth / 2}" y="${top + height / 2 + 7}" text-anchor="middle" textLength="${Math.max(40, layout.labelWidth - 28)}" lengthAdjust="spacingAndGlyphs" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="${labelText}">${escapeXml(tier.title)}</text>`,
+      `<rect x="0" y="${top}" width="${labelSize}" height="${labelSize}" fill="${labelColor}"/>`,
+      renderTierTitle(tier.title, labelSize, top, labelText),
     );
 
     tier.icons.forEach((icon, index) => {
-      const row = Math.floor(index / layout.columns);
-      const column = index % layout.columns;
+      const row = Math.floor(index / columns);
+      const column = index % columns;
       const x =
-        layout.labelWidth +
+        labelSize +
         layout.horizontalPadding +
         column * (layout.itemWidth + layout.gap);
       const y =
@@ -352,7 +423,7 @@ export function renderTierlist(model: TierlistModel): string {
 
       if (model.labels) {
         output.push(
-          `<text x="${x + layout.itemWidth / 2}" y="${y + 62}" text-anchor="middle" textLength="${layout.itemWidth - 12}" lengthAdjust="spacingAndGlyphs" font-family="Inter, Arial, sans-serif" font-size="12" fill="${colors.muted}">${escapeXml(icon.title)}</text>`,
+          `<text x="${x + layout.itemWidth / 2}" y="${y + 62}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="${colors.muted}">${escapeXml(icon.title)}</text>`,
         );
       }
     });

@@ -78,6 +78,21 @@ describe("renderTierlist", () => {
     expect(svg).toContain("PostgreSQL");
     expect(svg).toContain("<path");
     expect(svg).not.toContain("https://");
+    expect(svg).not.toContain("textLength");
+    expect(svg).not.toContain("lengthAdjust");
+    expect(svg).toContain('dominant-baseline="middle"');
+    expect(svg).toMatch(/width="100" height="100" fill="#FF0000"/);
+  });
+
+  it("wraps long tier titles without distorting glyphs", () => {
+    const model = parseTierlistSearchParams(
+      params("tier=FF0000;Especialista%20S%C3%AAnior;python&width=500"),
+    );
+    const svg = renderTierlist(model);
+
+    expect(svg).toContain("<tspan");
+    expect(svg).not.toContain("textLength");
+    expect(svg).not.toContain("lengthAdjust");
   });
 
   it("wraps icons and calculates a taller row when width is narrow", () => {
@@ -96,5 +111,11 @@ describe("renderTierlist", () => {
     );
 
     expect(narrowHeight).toBeGreaterThan(wideHeight);
+
+    const narrowLabel = renderTierlist(narrow).match(
+      /<rect x="0" y="0" width="(\d+)" height="(\d+)" fill="#FF0000"\/>/,
+    );
+    expect(narrowLabel?.[1]).toBe(narrowLabel?.[2]);
+    expect(Number(narrowLabel?.[1])).toBe(narrowHeight);
   });
 });
