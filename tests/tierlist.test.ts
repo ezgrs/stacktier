@@ -84,11 +84,13 @@ describe("renderTierlist", () => {
     expect(svg).toContain("PostgreSQL");
     expect(svg).toContain("<path");
     expect(svg).not.toContain("https://");
+    expect(svg).not.toContain('rx="12"');
     expect(svg).not.toContain("textLength");
     expect(svg).not.toContain("lengthAdjust");
     expect(svg).toContain('dominant-baseline="middle"');
     expect(svg).toContain('font-size="20"');
-    expect(svg).toMatch(/width="100" height="100" fill="#FF0000"/);
+    expect(svg).toMatch(/width="64" height="64" fill="#FF0000"/);
+    expect(svg).toContain('<svg x="64" y="0" width="48" height="48"');
   });
 
   it("wraps long tier titles without distorting glyphs", () => {
@@ -114,10 +116,14 @@ describe("renderTierlist", () => {
 
   it("wraps icons and calculates a taller row when width is narrow", () => {
     const narrow = parseTierlistSearchParams(
-      params("tier=FF0000;Pro;python,postgres,java,javascript,typescript&width=320"),
+      params(
+        "tier=FF0000;Pro;python,postgres,java,javascript,typescript,python,postgres,java,javascript,typescript&width=320",
+      ),
     );
     const wide = parseTierlistSearchParams(
-      params("tier=FF0000;Pro;python,postgres,java,javascript,typescript&width=1200"),
+      params(
+        "tier=FF0000;Pro;python,postgres,java,javascript,typescript,python,postgres,java,javascript,typescript&width=1200",
+      ),
     );
 
     const narrowHeight = Number(

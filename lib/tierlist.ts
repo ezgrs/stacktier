@@ -377,10 +377,11 @@ function contrastText(hex: string): string {
 }
 
 function calculateLayout(model: TierlistModel) {
-  const horizontalPadding = 24;
-  const gap = 12;
-  const itemWidth = model.labels ? 104 : 72;
-  const itemHeight = model.labels ? 76 : 64;
+  const horizontalPadding = 0;
+  const gap = 0;
+  const iconSize = 48;
+  const itemWidth = iconSize;
+  const itemHeight = model.labels ? 64 : iconSize;
 
   const tiers = model.tiers.map((tier) => {
     const maxColumns = Math.max(
@@ -414,6 +415,7 @@ function calculateLayout(model: TierlistModel) {
     gap,
     itemWidth,
     itemHeight,
+    iconSize,
     tiers,
     height: tiers.reduce((total, item) => total + item.height, 0),
   };
@@ -426,7 +428,6 @@ export function renderTierlist(model: TierlistModel): string {
       ? {
           background: "#0f172a",
           surface: "#111827",
-          tile: "#1e293b",
           border: "#334155",
           text: "#f8fafc",
           muted: "#cbd5e1",
@@ -434,7 +435,6 @@ export function renderTierlist(model: TierlistModel): string {
       : {
           background: "#f8fafc",
           surface: "#ffffff",
-          tile: "#f8fafc",
           border: "#e2e8f0",
           text: "#0f172a",
           muted: "#475569",
@@ -476,13 +476,11 @@ export function renderTierlist(model: TierlistModel): string {
         top +
         layout.horizontalPadding / 2 +
         row * (layout.itemHeight + layout.gap);
-      const iconSize = model.labels ? 36 : 42;
-      const iconX = x + (layout.itemWidth - iconSize) / 2;
-      const iconY = y + (model.labels ? 8 : 11);
+      const iconX = x;
+      const iconY = y;
 
       output.push(
-        `<rect x="${x}" y="${y}" width="${layout.itemWidth}" height="${layout.itemHeight}" rx="12" fill="${colors.tile}" stroke="${colors.border}"/>`,
-        `<svg x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" role="img" aria-label="${escapeXml(icon.title)}"><path fill="#${icon.hex}" d="${icon.path}"/></svg>`,
+        `<svg x="${iconX}" y="${iconY}" width="${layout.iconSize}" height="${layout.iconSize}" viewBox="0 0 24 24" role="img" aria-label="${escapeXml(icon.title)}"><path fill="#${icon.hex}" d="${icon.path}"/></svg>`,
       );
 
       if (model.labels) {
