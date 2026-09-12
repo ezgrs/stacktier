@@ -24,13 +24,12 @@ README. The deployed preview is at
 
 ### Requirements
 
-- Node.js 22 or a compatible Node.js runtime.
-- npm.
+- [Node.js 22](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) or a compatible Node.js runtime
 
 ### Run locally
 
 ```bash
-npm ci
+npm install
 npm run dev
 ```
 
